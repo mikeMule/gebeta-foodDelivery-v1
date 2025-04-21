@@ -94,6 +94,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch restaurant" });
     }
   });
+  
+  // Update restaurant
+  app.patch("/api/restaurants/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const restaurant = await storage.getRestaurant(id);
+      
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      
+      const updatedRestaurant = await storage.updateRestaurant(id, req.body);
+      res.json(updatedRestaurant);
+    } catch (error) {
+      console.error("Error updating restaurant:", error);
+      res.status(500).json({ message: "Failed to update restaurant" });
+    }
+  });
+  
+  // Create restaurant
+  app.post("/api/restaurants", async (req: Request, res: Response) => {
+    try {
+      const newRestaurant = await storage.createRestaurant(req.body);
+      res.status(201).json(newRestaurant);
+    } catch (error) {
+      console.error("Error creating restaurant:", error);
+      res.status(500).json({ message: "Failed to create restaurant" });
+    }
+  });
+  
+  // Food items management
+  app.post("/api/food-items", async (req: Request, res: Response) => {
+    try {
+      const newFoodItem = await storage.createFoodItem(req.body);
+      res.status(201).json(newFoodItem);
+    } catch (error) {
+      console.error("Error creating food item:", error);
+      res.status(500).json({ message: "Failed to create food item" });
+    }
+  });
+  
+  app.delete("/api/food-items/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteFoodItem(id);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting food item:", error);
+      res.status(500).json({ message: "Failed to delete food item" });
+    }
+  });
 
   // Food item routes
   app.get("/api/restaurants/:id/food-items", async (req: Request, res: Response) => {

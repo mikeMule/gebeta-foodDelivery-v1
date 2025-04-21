@@ -30,11 +30,13 @@ export interface IStorage {
   getRestaurant(id: number): Promise<Restaurant | undefined>;
   getAllRestaurants(): Promise<Restaurant[]>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
+  updateRestaurant(id: number, restaurant: Partial<InsertRestaurant>): Promise<Restaurant>;
   
   // Food item methods
   getFoodItem(id: number): Promise<FoodItem | undefined>;
   getFoodItemsByRestaurant(restaurantId: number): Promise<FoodItem[]>;
   createFoodItem(foodItem: InsertFoodItem): Promise<FoodItem>;
+  deleteFoodItem(id: number): Promise<void>;
   
   // Order methods
   getOrder(id: number): Promise<Order | undefined>;
@@ -110,6 +112,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
+  async updateRestaurant(id: number, restaurantData: Partial<InsertRestaurant>): Promise<Restaurant> {
+    const result = await db
+      .update(restaurants)
+      .set(restaurantData)
+      .where(eq(restaurants.id, id))
+      .returning();
+    return result[0];
+  }
+  
   // Food item methods
   async getFoodItem(id: number): Promise<FoodItem | undefined> {
     const result = await db.select().from(foodItems).where(eq(foodItems.id, id));
@@ -123,6 +134,10 @@ export class DatabaseStorage implements IStorage {
   async createFoodItem(insertFoodItem: InsertFoodItem): Promise<FoodItem> {
     const result = await db.insert(foodItems).values(insertFoodItem).returning();
     return result[0];
+  }
+  
+  async deleteFoodItem(id: number): Promise<void> {
+    await db.delete(foodItems).where(eq(foodItems.id, id));
   }
   
   // Order methods
