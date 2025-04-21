@@ -52,5 +52,12 @@ export default {
       projectId: "gebeta-food-delivery"
     },
     apiBaseUrl: process.env.API_BASE_URL || "https://gebeta-food-delivery.replit.app/api"
+  },
+  owner: "gebeta",
+  cli: {
+    appVersionSource: "remote"
+  },
+  runtimeVersion: {
+    policy: "appVersion"
   }
 };

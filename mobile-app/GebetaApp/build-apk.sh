@@ -35,6 +35,10 @@ fi
 echo "Please log in to your Expo account..."
 npx eas login
 
+# Initialize the project with EAS
+echo "Initializing the project with EAS..."
+npx eas init --id gebeta-food-delivery
+
 # Configure the project for building
 echo "Configuring the project..."
 npx eas build:configure
@@ -42,7 +46,7 @@ npx eas build:configure
 # Start the build process for Android
 echo "Starting Android APK build (preview profile)..."
 echo "This process will take some time. When complete, you'll get a download link."
-npx eas build -p android --profile preview
+npx eas build -p android --profile preview --non-interactive
 
 echo "=================================================="
 echo "Build process initiated!"
