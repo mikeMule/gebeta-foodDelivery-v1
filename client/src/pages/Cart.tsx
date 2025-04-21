@@ -123,9 +123,8 @@ const Cart = () => {
   };
   
   const handleCheckout = () => {
-    // Create a new order in the backend
-    clearCart();
-    setLocation("/order-tracking");
+    // Create a new order in the backend and navigate to success page
+    setLocation("/order-success");
   };
   
   // Get the selected delivery option details

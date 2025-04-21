@@ -11,6 +11,7 @@ import OtpVerification from "@/pages/OtpVerification";
 import Home from "@/pages/Home";
 import RestaurantDetail from "@/pages/RestaurantDetail";
 import Cart from "@/pages/Cart";
+import OrderSuccess from "@/pages/OrderSuccess";
 import OrderTracking from "@/pages/OrderTracking";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider } from "./hooks/useAuth";
@@ -41,6 +42,7 @@ function App() {
     return !showSplash && 
            location !== "/login" && 
            location !== "/otp-verification" &&
+           location !== "/order-success" &&
            !location.startsWith("/order-tracking");
   };
 
@@ -61,6 +63,7 @@ function App() {
                     <Route path="/home" component={Home} />
                     <Route path="/restaurant/:id" component={RestaurantDetail} />
                     <Route path="/cart" component={Cart} />
+                    <Route path="/order-success" component={OrderSuccess} />
                     <Route path="/order-tracking" component={OrderTracking} />
                     {/* Fallback to login */}
                     <Route path="/">
