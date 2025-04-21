@@ -32,6 +32,10 @@ export const restaurants = pgTable("restaurants", {
   distance: doublePrecision("distance").notNull(),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
+  openingHours: text("opening_hours").notNull().default("09:00"),
+  closingHours: text("closing_hours").notNull().default("21:00"),
+  phone: text("phone").notNull().default("+251-11-111-1111"),
+  address: text("address").notNull().default("Addis Ababa, Ethiopia"),
 });
 
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
@@ -45,6 +49,10 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   distance: true,
   latitude: true,
   longitude: true,
+  openingHours: true,
+  closingHours: true,
+  phone: true,
+  address: true,
 });
 
 // Food item table

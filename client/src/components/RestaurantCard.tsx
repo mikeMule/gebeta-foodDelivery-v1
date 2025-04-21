@@ -51,6 +51,37 @@ const RestaurantCard = ({ restaurant }: RestaurantCardProps) => {
             </div>
           </div>
           
+          {/* Opening hours row */}
+          <div className="flex items-center justify-between text-xs text-[#4F2D1F] mb-2 border-b border-[#E5A764]/20 pb-2">
+            <div className="flex items-center">
+              <Icons.clock className="mr-1 w-3 h-3 text-[#8B572A]" />
+              <span>Hours: {restaurant.openingHours} - {restaurant.closingHours}</span>
+            </div>
+            <span className={`px-1.5 py-0.5 rounded-full text-white text-[10px] ${
+              new Date().getHours() >= parseInt(restaurant.openingHours.split(':')[0]) && 
+              new Date().getHours() < parseInt(restaurant.closingHours.split(':')[0])
+                ? "bg-green-500" 
+                : "bg-red-500"
+            }`}>
+              {new Date().getHours() >= parseInt(restaurant.openingHours.split(':')[0]) && 
+               new Date().getHours() < parseInt(restaurant.closingHours.split(':')[0])
+                ? "Open now" 
+                : "Closed"}
+            </span>
+          </div>
+          
+          {/* Address row */}
+          <div className="flex items-center justify-between text-xs text-[#4F2D1F] mb-2">
+            <div className="flex items-center">
+              <Icons.mapPin className="mr-1 w-3 h-3 text-[#8B572A]" />
+              <span className="truncate max-w-[180px]">{restaurant.address}</span>
+            </div>
+            <div className="flex items-center">
+              <Icons.phone className="mr-1 w-3 h-3 text-[#8B572A]" />
+              <span>{restaurant.phone}</span>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center text-[#8B572A]">
               <Icons.mapPin className="mr-1 w-4 h-4" />
