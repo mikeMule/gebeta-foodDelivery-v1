@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { motion } from 'framer-motion';
 import { Icons } from '@/lib/icons';
 import { TelebirrLogo, TelebirrIcon } from './TelebirrLogo';
 
@@ -36,26 +35,32 @@ const TelebirrQRCode: React.FC<TelebirrQRCodeProps> = ({
   // Generate QR code on mount
   useEffect(() => {
     setIsGenerating(true);
-    const generateQR = async () => {
-      try {
-        const url = await QRCode.toDataURL(paymentString, {
-          errorCorrectionLevel: 'H',
-          margin: 1,
-          width: 200,
-          color: {
-            dark: '#8B572A',  // Ethiopian-themed brown for dots
-            light: '#FFF'     // White background
-          }
-        });
-        setQrCodeUrl(url);
-      } catch (err) {
-        console.error("Error generating QR code:", err);
-      } finally {
-        setIsGenerating(false);
-      }
-    };
     
-    generateQR();
+    // Using a slight delay to avoid any rendering issues
+    const timer = setTimeout(() => {
+      const generateQR = async () => {
+        try {
+          const url = await QRCode.toDataURL(paymentString, {
+            errorCorrectionLevel: 'H',
+            margin: 1,
+            width: 200,
+            color: {
+              dark: '#8B572A',  // Ethiopian-themed brown for dots
+              light: '#FFF'     // White background
+            }
+          });
+          setQrCodeUrl(url);
+        } catch (err) {
+          console.error("Error generating QR code:", err);
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+      
+      generateQR();
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [paymentString]);
   
   // Setup countdown timer
@@ -76,6 +81,11 @@ const TelebirrQRCode: React.FC<TelebirrQRCodeProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
+  // Generate a static transaction ID that won't change on re-renders
+  const transactionId = React.useMemo(() => 
+    Math.random().toString(36).substring(2, 10).toUpperCase(), 
+  []);
+  
   return (
     <div className="flex flex-col items-center">
       <div className="mb-2 text-center">
@@ -90,12 +100,7 @@ const TelebirrQRCode: React.FC<TelebirrQRCodeProps> = ({
         </p>
       </div>
       
-      <motion.div 
-        className="relative border-4 border-[#8B572A] rounded-lg p-2 bg-white mb-3"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      >
+      <div className="relative border-4 border-[#8B572A] rounded-lg p-2 bg-white mb-3">
         {isGenerating ? (
           <div className="w-[200px] h-[200px] flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8B572A]"></div>
@@ -112,7 +117,7 @@ const TelebirrQRCode: React.FC<TelebirrQRCodeProps> = ({
             </div>
           </>
         )}
-      </motion.div>
+      </div>
       
       <div className="text-center">
         <p className="font-bold text-xl text-[#8B572A] mb-1">
@@ -172,7 +177,7 @@ const TelebirrQRCode: React.FC<TelebirrQRCodeProps> = ({
         </div>
         
         <p className="text-xs text-neutral-500 mt-2">
-          Transaction ID: {Math.random().toString(36).substring(2, 10).toUpperCase()}
+          Transaction ID: {transactionId}
         </p>
       </div>
     </div>

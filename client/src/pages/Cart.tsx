@@ -365,66 +365,69 @@ const Cart = () => {
             >
               <h3 className="font-medium mb-3">Payment Method</h3>
               
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                <div className={`border rounded-lg p-3 flex items-center mb-3 ${
-                  paymentMethod === 'cash' 
-                    ? 'border-[#8B572A] bg-[#E5A764]/10' 
-                    : 'border-neutral-200'
-                } cursor-pointer transition-all duration-300`}
-                onClick={() => setPaymentMethod('cash')}
+              <div className="space-y-3">
+                <div 
+                  className={`border rounded-lg p-3 flex items-center ${
+                    paymentMethod === 'cash' 
+                      ? 'border-[#8B572A] bg-[#E5A764]/10' 
+                      : 'border-neutral-200'
+                  } cursor-pointer transition-all duration-300`}
+                  onClick={() => setPaymentMethod('cash')}
                 >
-                  <RadioGroupItem value="cash" id="cash" className="mr-3" />
-                  <Label htmlFor="cash" className="font-medium flex-grow cursor-pointer">
-                    Cash on Delivery
-                  </Label>
+                  <div className={`w-4 h-4 mr-3 rounded-full border ${
+                    paymentMethod === 'cash' 
+                      ? 'border-[#8B572A] flex items-center justify-center' 
+                      : 'border-gray-300'
+                  }`}>
+                    {paymentMethod === 'cash' && (
+                      <div className="w-2 h-2 rounded-full bg-[#8B572A]"></div>
+                    )}
+                  </div>
+                  <span className="font-medium flex-grow">Cash on Delivery</span>
+                  
                   {paymentMethod === 'cash' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="bg-[#8B572A] rounded-full p-1 text-white"
-                    >
+                    <div className="bg-[#8B572A] rounded-full p-1 text-white">
                       <Icons.check className="h-4 w-4" />
-                    </motion.div>
+                    </div>
                   )}
                 </div>
                 
-                <div className={`border rounded-lg p-3 flex items-center ${
-                  paymentMethod === 'telebirr' 
-                    ? 'border-[#8B572A] bg-[#E5A764]/10' 
-                    : 'border-neutral-200'
-                } cursor-pointer transition-all duration-300`}
-                onClick={() => setPaymentMethod('telebirr')}
+                <div 
+                  className={`border rounded-lg p-3 flex items-center ${
+                    paymentMethod === 'telebirr' 
+                      ? 'border-[#8B572A] bg-[#E5A764]/10' 
+                      : 'border-neutral-200'
+                  } cursor-pointer transition-all duration-300`}
+                  onClick={() => setPaymentMethod('telebirr')}
                 >
-                  <RadioGroupItem value="telebirr" id="telebirr" className="mr-3" />
-                  <Label htmlFor="telebirr" className="font-medium flex-grow cursor-pointer">
-                    Telebirr
-                  </Label>
+                  <div className={`w-4 h-4 mr-3 rounded-full border ${
+                    paymentMethod === 'telebirr' 
+                      ? 'border-[#8B572A] flex items-center justify-center' 
+                      : 'border-gray-300'
+                  }`}>
+                    {paymentMethod === 'telebirr' && (
+                      <div className="w-2 h-2 rounded-full bg-[#8B572A]"></div>
+                    )}
+                  </div>
+                  <span className="font-medium flex-grow">Telebirr</span>
+                  
                   <div className="flex items-center gap-1">
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Recommended</span>
                     {paymentMethod === 'telebirr' ? (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="bg-[#8B572A] rounded-full p-1 text-white"
-                      >
+                      <div className="bg-[#8B572A] rounded-full p-1 text-white">
                         <Icons.check className="h-4 w-4" />
-                      </motion.div>
+                      </div>
                     ) : (
                       <Icons.creditCard className="text-neutral-400" />
                     )}
                   </div>
                 </div>
-              </RadioGroup>
+              </div>
               
               {paymentMethod === 'telebirr' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="mt-4 p-4 border border-[#E5A764]/30 rounded-lg bg-[#FFF9F2]"
-                >
+                <div className="mt-4 p-4 border border-[#E5A764]/30 rounded-lg bg-[#FFF9F2]">
                   <TelebirrQRCode amount={totalWithFees} />
-                </motion.div>
+                </div>
               )}
             </motion.div>
           </>
