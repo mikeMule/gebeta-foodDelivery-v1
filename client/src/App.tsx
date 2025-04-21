@@ -27,15 +27,22 @@ function App() {
   const [location, setLocation] = useLocation();
 
   useEffect(() => {
-    // Show splash screen for 3 seconds then redirect to login
+    // Show splash screen for 3 seconds then redirect to appropriate page
     // Increased to allow more time to appreciate the animations
     const timer = setTimeout(() => {
       setShowSplash(false);
-      setLocation("/login");
+      
+      // Check if we're trying to access an admin page
+      if (location.startsWith('/admin')) {
+        // Don't redirect, stay on the current admin page
+      } else {
+        // For regular app flow, go to login
+        setLocation("/login");
+      }
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [setLocation]);
+  }, [setLocation, location]);
 
   // Update the document title
   useEffect(() => {
@@ -79,10 +86,13 @@ function App() {
                     <Route path="/admin/dashboard" component={AdminDashboard} />
                     <Route path="/admin/restaurant/:id" component={AdminRestaurantForm} />
                     
-                    {/* Fallback to login */}
+                    {/* Fallback to appropriate page */}
                     <Route path="/">
                       {() => {
-                        setLocation("/login");
+                        // If the URL already has '/admin', don't redirect
+                        if (!location.startsWith('/admin')) {
+                          setLocation("/login");
+                        }
                         return null;
                       }}
                     </Route>
