@@ -9,12 +9,12 @@ import SplashScreen from '../screens/SplashScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OtpVerificationScreen from '../screens/OtpVerificationScreen';
 import HomeScreen from '../screens/HomeScreen';
-
-// Placeholder screens (to be implemented)
-const CartScreen = () => <React.Fragment />;
-const ProfileScreen = () => <React.Fragment />;
-const OrdersScreen = () => <React.Fragment />;
-const RestaurantDetailScreen = () => <React.Fragment />;
+import RestaurantDetailScreen from '../screens/RestaurantDetailScreen';
+import CartScreen from '../screens/CartScreen';
+import OrderSuccessScreen from '../screens/OrderSuccessScreen';
+import OrderTrackingScreen from '../screens/OrderTrackingScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import MyOrdersScreen from '../screens/MyOrdersScreen';
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -59,7 +59,7 @@ const MainTabNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
+      <Tab.Screen name="Orders" component={MyOrdersScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -93,6 +93,16 @@ const AppNavigator = () => {
             headerTintColor: '#FFF',
             headerBackTitle: ' ',
           }} 
+        />
+        <Stack.Screen 
+          name="OrderSuccess" 
+          component={OrderSuccessScreen}
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="OrderTracking" 
+          component={OrderTrackingScreen}
+          options={{ headerShown: false }} 
         />
       </Stack.Navigator>
     </NavigationContainer>
