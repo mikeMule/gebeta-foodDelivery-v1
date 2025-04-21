@@ -7,7 +7,7 @@ import DeliveryMap from "@/components/DeliveryMap";
 import RatingStars from "@/components/RatingStars";
 import VoiceAssistant from "@/components/VoiceAssistant";
 import { fadeIn, slideUp } from "@/lib/animation";
-import { Mic } from "lucide-react";
+
 
 // Order status timeline steps - more detailed version for the full tracking page
 const orderSteps = [
@@ -120,181 +120,148 @@ const OrderTracking = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              className="p-0 mr-2"
-              onClick={handleBackClick}
-            >
-              <Icons.chevronLeft className="h-6 w-6 text-[#4F2D1F]" />
-            </Button>
-            <h1 className="text-lg font-bold text-[#4F2D1F]">Track Order #{orderData.id}</h1>
-          </div>
-          <Button
-            variant="ghost"
+      {/* Full-width map at the top */}
+      <div className="relative w-full h-[40vh]">
+        <DeliveryMap height="100%" />
+        <div className="absolute top-4 left-4 right-4 flex justify-between z-10">
+          <Button 
+            variant="outline" 
             size="icon"
-            className="text-[#8B572A] hover:bg-[#E5A764]/10"
-            onClick={() => setShowVoiceAssistant(prev => !prev)}
+            className="h-10 w-10 rounded-full bg-white shadow-md"
+            onClick={handleBackClick}
           >
-            <Mic className="h-5 w-5" />
+            <Icons.chevronLeft className="h-5 w-5 text-[#4F2D1F]" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 rounded-full bg-white shadow-md"
+            onClick={() => {}}
+          >
+            <Icons.info className="h-5 w-5 text-[#4F2D1F]" />
           </Button>
         </div>
-      </header>
+        
+        {/* Voice control button (on map) */}
+        <Button
+          variant="default"
+          size="icon"
+          className="absolute right-4 bottom-4 rounded-full h-12 w-12 bg-[#8B572A] hover:bg-[#4F2D1F] shadow-lg z-10"
+          onClick={() => setShowVoiceAssistant(true)}
+        >
+          <Mic className="h-5 w-5 text-white" />
+        </Button>
+      </div>
 
-      <div className="flex-1 overflow-auto pb-20">
-        <div className="p-4">
-          {/* Restaurant info */}
-          <motion.div 
-            className="bg-white rounded-xl shadow-md p-4 mb-4 border border-[#E5A764]/20"
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.1 }}
-          >
-            <div className="flex items-center">
-              <img 
-                src={orderData.restaurant.imageUrl} 
-                alt={orderData.restaurant.name}
-                className="w-16 h-16 rounded-lg object-cover mr-3" 
-              />
-              <div>
-                <p className="font-medium text-[#4F2D1F]">{orderData.restaurant.name}</p>
-                <p className="text-sm text-[#8B572A]">
-                  {orderData.restaurant.items} items · {orderData.restaurant.total.toLocaleString()} ETB
-                </p>
-                <div className="flex items-center mt-1">
-                  <Icons.clock className="h-4 w-4 text-[#8B572A] mr-1" />
-                  <span className="text-sm font-medium text-[#4F2D1F]">
-                    {estimatedTime > 0 ? `${estimatedTime} min` : "Arriving now!"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+      {/* Order status card - floating above the map */}
+      <div className="relative -mt-10 mx-4 z-20">
+        <motion.div 
+          className="bg-white rounded-xl shadow-lg p-5 mb-4"
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.1 }}
+        >
+          <div className="mb-2">
+            <h2 className="text-xl font-bold text-[#4F2D1F]">
+              {currentStep === 4 ? "Delivery complete" : "Delivery in progress"}
+            </h2>
+            <p className="text-[#8B572A]">
+              {currentStep === 4 ? "Completed" : estimatedTime > 0 ? `${estimatedTime} min remaining` : "Arriving now!"}
+            </p>
+          </div>
           
-          {/* Map view */}
-          <motion.div 
-            className="bg-white rounded-xl shadow-md p-4 mb-4 border border-[#E5A764]/20"
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.2 }}
-          >
-            <h3 className="font-bold text-[#4F2D1F] mb-3">Delivery Location</h3>
-            <div className="rounded-lg overflow-hidden h-44 mb-3">
-              <DeliveryMap height="100%" />
-            </div>
-            <div className="flex items-start">
-              <Icons.mapPin className="text-[#8B572A] mt-1 mr-2 h-5 w-5 flex-shrink-0" />
-              <p className="text-[#4F2D1F]">Meskel Square, Addis Ababa, Ethiopia</p>
-            </div>
-          </motion.div>
-          
-          {/* Order status steps */}
-          <motion.div 
-            className="bg-white rounded-xl shadow-md p-4 mb-4 border border-[#E5A764]/20"
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.3 }}
-          >
-            <h3 className="font-bold text-[#4F2D1F] mb-4">Order Status</h3>
-            <div className="space-y-0">
-              {orderSteps.map((step, index) => {
-                const isStepCompleted = step.id <= currentStep;
-                return (
-                  <div key={step.id} className="relative">
-                    {/* Connecting line */}
-                    {index < orderSteps.length - 1 && (
-                      <div 
-                        className={`absolute left-[15px] top-[30px] w-[2px] h-[calc(100%-15px)] ${
-                          isStepCompleted && orderSteps[index + 1].id <= currentStep 
-                            ? 'bg-[#8B572A]' 
-                            : 'bg-gray-200'
-                        } transition-colors duration-500`}
-                      />
-                    )}
-                    
-                    <div className="flex items-start py-3">
-                      <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full ${
-                        isStepCompleted ? 'bg-[#8B572A]' : 'bg-gray-200'
-                      } flex items-center justify-center text-white transition-colors duration-500`}>
-                        {getStepIcon(step.icon)}
-                      </div>
-                      
-                      <div className="ml-4 flex-grow">
-                        <div className="flex justify-between items-center">
-                          <h4 className={`font-medium ${isStepCompleted ? 'text-[#4F2D1F]' : 'text-gray-500'}`}>
-                            {step.name}
-                          </h4>
-                          <span className="text-xs text-[#8B572A]">{step.time}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
-                      </div>
+          {/* Horizontal timeline */}
+          <div className="flex items-center justify-between my-4 px-4">
+            {orderSteps.map((step, index) => {
+              const isStepCompleted = step.id <= currentStep;
+              
+              return (
+                <div key={step.id} className="flex flex-col items-center relative">
+                  {/* Connecting line */}
+                  {index < orderSteps.length - 1 && (
+                    <div className={`absolute top-3 left-6 w-[calc(100%+10px)] h-[2px] ${
+                      isStepCompleted && orderSteps[index + 1].id <= currentStep 
+                        ? 'bg-[#8B572A]' 
+                        : 'bg-gray-200'
+                    } transition-colors duration-500`} />
+                  )}
+                  
+                  {/* Step circle */}
+                  <div className={`relative z-10 flex-shrink-0 w-6 h-6 rounded-full ${
+                    isStepCompleted ? 'bg-[#8B572A]' : 'bg-gray-200'
+                  } flex items-center justify-center text-white transition-colors duration-500 mb-2`}>
+                    <div className="h-3 w-3">
+                      {getStepIcon(step.icon)}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </motion.div>
+                </div>
+              );
+            })}
+          </div>
           
-          {/* Driver information */}
-          <motion.div 
-            className="bg-white rounded-xl shadow-md p-4 mb-4 border border-[#E5A764]/20"
-            variants={fadeIn}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.4 }}
-          >
-            <h3 className="font-bold text-[#4F2D1F] mb-3">Delivery Person</h3>
+          <p className="text-[#4F2D1F] mb-3">
+            {currentStep === 4 
+              ? "Your order has been delivered successfully." 
+              : `Your order is ${orderSteps[currentStep - 1].name.toLowerCase()}.`}
+          </p>
+          
+          {/* Driver info - like in the example */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
             <div className="flex items-center">
               <img 
                 src={orderData.driver.imageUrl} 
                 alt={orderData.driver.name}
-                className="w-14 h-14 rounded-full object-cover mr-3 border-2 border-[#E5A764]" 
+                className="w-12 h-12 rounded-full object-cover mr-3" 
               />
-              <div className="flex-1">
+              <div>
                 <p className="font-medium text-[#4F2D1F]">{orderData.driver.name}</p>
-                <div className="flex items-center">
-                  <Icons.star className="h-4 w-4 text-[#E5A764] mr-1" />
-                  <span className="text-sm text-[#8B572A]">{orderData.driver.rating}</span>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button size="icon" variant="outline" className="rounded-full h-10 w-10 border-[#8B572A] text-[#8B572A] hover:bg-[#E5A764]/10">
-                  <Icons.phone className="h-5 w-5" />
-                </Button>
-                <Button size="icon" variant="outline" className="rounded-full h-10 w-10 border-[#8B572A] text-[#8B572A] hover:bg-[#E5A764]/10">
-                  <Icons.message className="h-5 w-5" />
-                </Button>
+                <p className="text-sm text-[#8B572A]">Your Driver</p>
               </div>
             </div>
-          </motion.div>
-          
-          {/* Rate order section - shows after delivery is complete */}
-          {currentStep === 4 && showRating && (
-            <motion.div 
-              className="bg-white rounded-xl shadow-md p-4 mb-4 border border-[#E5A764]/20"
-              variants={slideUp}
-              initial="hidden"
-              animate="visible"
-            >
-              <h3 className="font-bold text-[#4F2D1F] mb-3">How was your meal?</h3>
-              <div className="flex justify-center mb-4">
-                <RatingStars rating={rating} setRating={setRating} />
-              </div>
-              <Button 
-                className="w-full bg-[#8B572A] hover:bg-[#4F2D1F] text-white"
-                onClick={handleSubmitRating}
-              >
-                Submit Rating
+            <div className="flex space-x-2">
+              <Button size="icon" variant="outline" className="rounded-full h-10 w-10 bg-gray-100 border-none">
+                <Icons.phone className="h-5 w-5 text-[#4F2D1F]" />
               </Button>
-            </motion.div>
-          )}
-        </div>
+              <Button size="icon" variant="outline" className="rounded-full h-10 w-10 bg-gray-100 border-none">
+                <Icons.message className="h-5 w-5 text-[#4F2D1F]" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* View details button */}
+          <div className="mt-4 text-center">
+            <Button 
+              variant="ghost" 
+              className="text-[#8B572A] w-full"
+            >
+              View all details
+              <Icons.chevronDown className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </motion.div>
       </div>
+      
+      {/* Rate order section - shows after delivery is complete */}
+      {currentStep === 4 && showRating && (
+        <motion.div 
+          className="mx-4 bg-white rounded-xl shadow-md p-4 mb-4"
+          variants={slideUp}
+          initial="hidden"
+          animate="visible"
+        >
+          <h3 className="font-bold text-[#4F2D1F] mb-3">How was your meal?</h3>
+          <div className="flex justify-center mb-4">
+            <RatingStars rating={rating} setRating={setRating} />
+          </div>
+          <Button 
+            className="w-full bg-[#8B572A] hover:bg-[#4F2D1F] text-white"
+            onClick={handleSubmitRating}
+          >
+            Submit Rating
+          </Button>
+        </motion.div>
+      )}
 
       {/* Voice assistant - toggled when the mic button is clicked */}
       {showVoiceAssistant && (
@@ -305,18 +272,6 @@ const OrderTracking = () => {
           onClose={() => setShowVoiceAssistant(false)}
         />
       )}
-      
-      {/* Floating voice button for mobile */}
-      <div className="md:hidden">
-        <Button
-          variant="default"
-          size="icon"
-          className="fixed bottom-6 right-6 rounded-full h-14 w-14 bg-[#8B572A] hover:bg-[#4F2D1F] shadow-lg"
-          onClick={() => setShowVoiceAssistant(true)}
-        >
-          <Mic className="h-6 w-6 text-white" />
-        </Button>
-      </div>
     </motion.div>
   );
 };
