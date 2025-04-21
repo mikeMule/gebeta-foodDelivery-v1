@@ -1,0 +1,44 @@
+<svg width="300" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circular plate background -->
+  <circle cx="150" cy="100" r="95" fill="#E5A764" />
+  <circle cx="150" cy="100" r="85" fill="#8B572A" />
+  
+  <!-- Injera (Ethiopian bread) -->
+  <circle cx="150" cy="100" r="75" fill="#E0B27B" />
+  
+  <!-- Doro Wat stew -->
+  <circle cx="150" cy="100" r="65" fill="#8B2500" />
+  
+  <!-- Egg -->
+  <circle cx="120" cy="85" r="15" fill="#FFF7E0" />
+  <circle cx="120" cy="85" r="8" fill="#FFD54F" />
+  
+  <!-- Chicken pieces -->
+  <path d="M160 80 Q180 60, 190 85 Q195 95, 180 105 Q165 110, 160 100 Z" fill="#C73030" />
+  <path d="M140 115 Q155 105, 170 115 Q180 125, 160 135 Q140 130, 140 115 Z" fill="#B22222" />
+  
+  <!-- Lentils and vegetables -->
+  <circle cx="110" cy="115" r="10" fill="#654321" />
+  <circle cx="95" cy="100" r="8" fill="#228B22" />
+  <circle cx="175" cy="70" r="7" fill="#228B22" />
+  <circle cx="165" cy="140" r="9" fill="#FF6347" />
+  
+  <!-- Spice garnish -->
+  <circle cx="135" cy="70" r="5" fill="#FF6347" />
+  <circle cx="190" cy="110" r="4" fill="#FFA500" />
+  <circle cx="115" cy="130" r="4" fill="#FFA500" />
+  
+  <!-- Texture/patterns on injera -->
+  <circle cx="145" cy="130" r="2" fill="#D69F7E" />
+  <circle cx="120" cy="145" r="2" fill="#D69F7E" />
+  <circle cx="135" cy="105" r="2" fill="#D69F7E" />
+  <circle cx="170" cy="90" r="2" fill="#D69F7E" />
+  <circle cx="155" cy="55" r="2" fill="#D69F7E" />
+  <circle cx="185" cy="125" r="2" fill="#D69F7E" />
+  <circle cx="90" cy="85" r="2" fill="#D69F7E" />
+  
+  <!-- Steam -->
+  <path d="M140 55 Q150 40, 160 55 Q170 40, 175 55" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.7" />
+  <path d="M130 60 Q140 45, 150 60" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.7" />
+  <path d="M170 60 Q180 45, 190 60" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.7" />
+</svg>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -7,21 +7,29 @@ import RestaurantCard from "@/components/RestaurantCard";
 import NavBar from "@/components/NavBar";
 import DeliveryMap from "@/components/DeliveryMap";
 import { Button } from "@/components/ui/button";
-import { type Restaurant } from "@shared/schema";
+import { type Restaurant, type FoodItem } from "@shared/schema";
 import { Icons } from "@/lib/icons";
 import { containerVariants, itemVariants } from "@/lib/animation";
-import { Navigation, MapPin } from "lucide-react";
+import { Navigation, MapPin, Search } from "lucide-react";
 
 const Home = () => {
   const [, setLocation] = useLocation();
   const { userData } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; name: string }>({
     lat: 8.9806, 
     lng: 38.7578, 
     name: userData?.location || "Bole, Addis Ababa"
   });
   const [showLocationBanner, setShowLocationBanner] = useState<boolean>(true);
+  // Extended FoodItem type to include restaurant information
+  type FoodItemWithRestaurant = FoodItem & {
+    restaurantName?: string;
+  };
+  
+  const [foodItems, setFoodItems] = useState<FoodItemWithRestaurant[]>([]);
+  const [showFoodItemsInSearch, setShowFoodItemsInSearch] = useState<boolean>(false);
   
   const { data: restaurants, isLoading, refetch: refetchRestaurants } = useQuery<Restaurant[]>({
     queryKey: ['/api/restaurants', userLocation.lat, userLocation.lng],
@@ -46,11 +54,56 @@ const Home = () => {
     setLocation(`/restaurant/${id}`);
   };
 
-  const filteredRestaurants = selectedCategory === "All" 
-    ? restaurants 
-    : restaurants?.filter(restaurant => 
-        restaurant.categories.includes(selectedCategory)
-      );
+  // Fetch all food items from all restaurants
+  useEffect(() => {
+    if (restaurants && restaurants.length > 0) {
+      const fetchFoodItems = async () => {
+        const allFoodItems: FoodItem[] = [];
+        
+        for (const restaurant of restaurants) {
+          try {
+            const response = await fetch(`/api/restaurants/${restaurant.id}/food-items`);
+            if (response.ok) {
+              const items = await response.json();
+              // Add restaurant information to each food item for better display
+              const itemsWithRestaurant = items.map((item: FoodItem) => ({
+                ...item,
+                restaurantName: restaurant.name,
+                restaurantId: restaurant.id
+              }));
+              allFoodItems.push(...itemsWithRestaurant);
+            }
+          } catch (error) {
+            console.error(`Error fetching food items for restaurant ${restaurant.id}:`, error);
+          }
+        }
+        
+        setFoodItems(allFoodItems);
+      };
+      
+      fetchFoodItems();
+    }
+  }, [restaurants]);
+
+  // Handle search functionality
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setShowFoodItemsInSearch(query.length > 0);
+  };
+  
+  // Filter restaurants based on category and search query
+  const filteredRestaurants = restaurants
+    ?.filter(restaurant => {
+      // First filter by category
+      const categoryMatch = selectedCategory === "All" || restaurant.categories.includes(selectedCategory);
+      
+      // Then filter by search query if there is one
+      const searchMatch = !searchQuery || 
+        restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        restaurant.description.toLowerCase().includes(searchQuery.toLowerCase());
+        
+      return categoryMatch && searchMatch;
+    });
 
   const requestLocationPermission = () => {
     navigator.geolocation.getCurrentPosition(
@@ -154,9 +207,54 @@ const Home = () => {
             </div>
             <input 
               type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search for restaurants or dishes"
               className="w-full bg-[#E5A764]/10 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[#8B572A]"
             />
+            
+            {/* Search results dropdown for food items */}
+            {showFoodItemsInSearch && searchQuery.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
+                <div className="p-2">
+                  <div className="text-xs font-medium text-[#8B572A] mb-1 px-2">
+                    {foodItems.filter(item => 
+                      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length > 0 ? 'Dishes' : 'No dishes found'}
+                  </div>
+                  
+                  {/* Food items matching search */}
+                  {foodItems
+                    .filter(item => 
+                      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .slice(0, 5) // Show top 5 results
+                    .map((item, index) => (
+                      <div 
+                        key={`food-${item.id}`}
+                        className="flex items-center p-2 hover:bg-[#FFF9F2] rounded-lg cursor-pointer"
+                        onClick={() => {
+                          // Navigate to restaurant with this food item
+                          if (item.restaurantId) {
+                            handleRestaurantClick(item.restaurantId);
+                          }
+                        }}
+                      >
+                        <div className="w-10 h-10 bg-[#E5A764]/20 rounded-full flex items-center justify-center mr-3">
+                          <Search className="w-4 h-4 text-[#8B572A]" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm text-[#4F2D1F]">{item.name}</div>
+                          <div className="text-xs text-[#8B572A]">
+                            {item.restaurantName ? `at ${item.restaurantName}` : ''} • ${item.price.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -198,18 +296,23 @@ const Home = () => {
         >
           <div className="bg-gradient-to-r from-[#8B572A] to-[#4F2D1F] p-5 flex">
             <div className="flex-grow">
-              <h3 className="text-xl font-bold text-white font-dm-sans">Try Authentic Ethiopian</h3>
-              <p className="text-sm text-white/90 mb-3">Use code: <span className="font-medium bg-white/20 px-2 py-0.5 rounded">GEBETA25</span></p>
+              <h3 className="text-xl font-bold text-white font-dm-sans">Try Authentic Ethiopian Doro Wat</h3>
+              <p className="text-sm text-white/90 mb-2">A spicy, rich Ethiopian chicken stew with berbere spices and boiled egg</p>
+              <p className="text-sm text-white/90 mb-3">Use code: <span className="font-medium bg-white/20 px-2 py-0.5 rounded">GEBETA25</span> for 25% off</p>
               <Button className="text-sm bg-white text-[#4F2D1F] hover:bg-white/90 font-medium py-1.5 px-4 rounded-lg">
                 Order Now
               </Button>
             </div>
-            <div className="w-1/3">
+            <div className="w-1/3 relative overflow-hidden rounded-lg">
+              <div className="absolute inset-0 bg-[#8B572A]/20"></div>
               <img 
-                src="https://images.unsplash.com/photo-1567888033478-593a83beca49?w=300&auto=format&fit=crop" 
+                src="/images/doro-wat.svg" 
                 alt="Ethiopian Doro Wat promo" 
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-contain"
               />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#4F2D1F]/90 to-transparent p-2 text-center">
+                <span className="text-white text-xs font-medium">Traditional Recipe</span>
+              </div>
             </div>
           </div>
         </motion.div>
