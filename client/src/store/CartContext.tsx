@@ -78,8 +78,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast({
       title: isNewItem ? "Added to Cart" : "Updated Cart",
       description: `${newItem.quantity} × ${newItem.name} ${isNewItem ? "added to" : "updated in"} cart`,
-      variant: "default",
-      icon: <ShoppingBag className="h-4 w-4 text-[#8B572A]" />
+      variant: "default"
     });
   };
 
