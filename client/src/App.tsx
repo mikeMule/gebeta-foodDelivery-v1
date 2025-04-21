@@ -15,6 +15,9 @@ import OrderSuccess from "@/pages/OrderSuccess";
 import OrderTracking from "@/pages/OrderTracking";
 import Profile from "@/pages/Profile";
 import MyOrders from "@/pages/MyOrders";
+import AdminLogin from "@/pages/AdminLogin";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminRestaurantForm from "@/pages/AdminRestaurantForm";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
@@ -45,7 +48,8 @@ function App() {
            location !== "/login" && 
            location !== "/otp-verification" &&
            location !== "/order-success" &&
-           !location.startsWith("/order-tracking");
+           !location.startsWith("/order-tracking") &&
+           !location.startsWith("/admin"); // Hide navbar on admin pages
   };
 
   return (
@@ -69,6 +73,12 @@ function App() {
                     <Route path="/order-tracking" component={OrderTracking} />
                     <Route path="/profile" component={Profile} />
                     <Route path="/my-orders" component={MyOrders} />
+                    
+                    {/* Admin routes */}
+                    <Route path="/admin/login" component={AdminLogin} />
+                    <Route path="/admin/dashboard" component={AdminDashboard} />
+                    <Route path="/admin/restaurant/:id" component={AdminRestaurantForm} />
+                    
                     {/* Fallback to login */}
                     <Route path="/">
                       {() => {

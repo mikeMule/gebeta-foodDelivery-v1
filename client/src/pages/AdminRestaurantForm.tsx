@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 export default function AdminRestaurantForm() {
   const { id } = useParams();
   const isNew = id === "new";
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const { isAuthenticated, userData } = useAuth();
   const { toast } = useToast();
   const [foodItems, setFoodItems] = useState<any[]>([]);
@@ -57,7 +57,7 @@ export default function AdminRestaurantForm() {
         description: "You must be logged in as an admin to view this page",
         variant: "destructive",
       });
-      navigate("/admin/login");
+      setLocation("/admin/login");
       return;
     }
 
@@ -104,7 +104,7 @@ export default function AdminRestaurantForm() {
           console.error("Error fetching food items:", error);
         });
     }
-  }, [isAuthenticated, userData, id, isNew, navigate, toast]);
+  }, [isAuthenticated, userData, id, isNew, setLocation, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

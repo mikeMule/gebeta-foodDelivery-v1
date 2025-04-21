@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export default function AdminLogin() {
         description: "Welcome to Admin Dashboard",
       });
       
-      navigate("/admin/dashboard");
+      setLocation("/admin/dashboard");
     } else {
       toast({
         title: "Error",

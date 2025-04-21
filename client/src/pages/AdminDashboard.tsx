@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Restaurant } from "@shared/schema";
 
 export default function AdminDashboard() {
   const { userData, isAuthenticated, logout } = useAuth();
-  const [, navigate] = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function AdminDashboard() {
         description: "You must be logged in as an admin to view this page",
         variant: "destructive",
       });
-      navigate("/admin/login");
+      setLocation("/admin/login");
       return;
     }
 
@@ -42,11 +42,11 @@ export default function AdminDashboard() {
         });
         setLoading(false);
       });
-  }, [isAuthenticated, userData, navigate, toast]);
+  }, [isAuthenticated, userData, setLocation, toast]);
 
   const handleLogout = () => {
     logout();
-    navigate("/admin/login");
+    setLocation("/admin/login");
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
@@ -54,11 +54,11 @@ export default function AdminDashboard() {
   };
 
   const handleAddRestaurant = () => {
-    navigate("/admin/restaurant/new");
+    setLocation("/admin/restaurant/new");
   };
 
   const handleManageRestaurant = (id: number) => {
-    navigate(`/admin/restaurant/${id}`);
+    setLocation(`/admin/restaurant/${id}`);
   };
 
   return (
