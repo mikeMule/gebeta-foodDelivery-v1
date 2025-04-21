@@ -22,32 +22,48 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  // Use localStorage to persist authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const saved = localStorage.getItem('isAuthenticated');
+    return saved === 'true';
+  });
+  
+  const [userData, setUserData] = useState<UserData | null>(() => {
+    const saved = localStorage.getItem('userData');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const login = (data: UserData) => {
     setUserData(data);
+    localStorage.setItem('userData', JSON.stringify(data));
   };
 
   const verifyOtp = (otp: string) => {
     // In a real app, you would verify the OTP with your backend
     // For now, we'll just set the user as authenticated
     setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
     
     // Mock setting a default location if none is provided
     if (userData && !userData.location) {
-      setUserData({ ...userData, location: "Bole, Addis Ababa" });
+      const updatedUserData = { ...userData, location: "Bole, Addis Ababa" };
+      setUserData(updatedUserData);
+      localStorage.setItem('userData', JSON.stringify(updatedUserData));
     }
   };
 
   const logout = () => {
     setIsAuthenticated(false);
     setUserData(null);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userData');
   };
   
   const updateProfile = (data: Partial<UserData>) => {
     if (userData) {
-      setUserData({ ...userData, ...data });
+      const updatedUserData = { ...userData, ...data };
+      setUserData(updatedUserData);
+      localStorage.setItem('userData', JSON.stringify(updatedUserData));
     }
   };
 
