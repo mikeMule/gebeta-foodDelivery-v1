@@ -265,7 +265,7 @@ const Cart = () => {
                         ${deliveryOption === option.id ? 'border-primary bg-primary/5' : 'border-neutral-200'}
                       `}
                     >
-                      <div className="flex items-center">
+                      <div className={`flex items-center ${deliveryOption === option.id ? 'animate-subtle-pulse' : ''}`}>
                         {option.recommended && (
                           <Badge 
                             className="absolute -top-2 -right-1 bg-green-500 text-[10px] px-2 py-0 h-5"
@@ -275,20 +275,36 @@ const Cart = () => {
                           </Badge>
                         )}
                         
-                        <div className={`mr-3 p-2 rounded-full ${deliveryOption === option.id ? 'bg-primary text-white' : 'bg-neutral-100'}`}>
+                        <div className={`mr-3 p-2.5 rounded-full transition-all ${
+                          deliveryOption === option.id 
+                            ? 'bg-primary text-white shadow-md scale-110 transform' 
+                            : 'bg-neutral-100'
+                        }`}>
                           {option.icon}
                         </div>
                         
                         <div className="flex-grow">
                           <div className="flex justify-between">
-                            <p className="font-medium">{option.name}</p>
-                            <p className="font-medium text-right">Birr {option.baseFee.toFixed(2)}</p>
+                            <p className={`font-medium ${deliveryOption === option.id ? 'text-primary' : ''}`}>
+                              {option.name}
+                            </p>
+                            <p className={`font-medium text-right ${deliveryOption === option.id ? 'text-primary' : ''}`}>
+                              Birr {option.baseFee.toFixed(2)}
+                            </p>
                           </div>
                           <div className="flex justify-between">
                             <p className="text-xs text-neutral-500">{option.description}</p>
                             <p className="text-xs text-neutral-500">{option.estimatedTime}</p>
                           </div>
                         </div>
+
+                        {deliveryOption === option.id && (
+                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-full flex items-center pointer-events-none">
+                            <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
                       {!isValid && (
@@ -350,11 +366,21 @@ const Cart = () => {
       {cartItems.length > 0 && (
         <div className="fixed bottom-[70px] left-0 right-0 bg-white border-t border-neutral-200 p-4 z-10">
           <Button 
-            className="w-full bg-primary text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-md transition-all duration-300 scale-icon"
             onClick={handleCheckout}
           >
-            <span>Place Order • Birr {totalWithFees.toFixed(2)}</span>
+            {selectedDeliveryOption?.icon && (
+              <div className="mr-1">
+                {selectedDeliveryOption.icon}
+              </div>
+            )}
+            <span>Proceed to Checkout • Birr {totalWithFees.toFixed(2)}</span>
+            <Icons.arrowRight className="w-4 h-4 ml-1" />
           </Button>
+          
+          <p className="text-center text-xs text-neutral-500 mt-2">
+            Selected delivery: {selectedDeliveryOption?.name} • Delivery Fee: Birr {deliveryFee.toFixed(2)}
+          </p>
         </div>
       )}
     </motion.div>

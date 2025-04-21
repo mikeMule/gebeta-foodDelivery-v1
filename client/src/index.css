@@ -11,3 +11,27 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@keyframes subtle-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-subtle-pulse {
+  animation: subtle-pulse 2s infinite ease-in-out;
+}
+
+.scale-icon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.scale-icon:hover {
+  transform: scale(1.1);
+}
