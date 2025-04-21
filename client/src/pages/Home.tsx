@@ -15,6 +15,11 @@ const Home = () => {
   const [, setLocation] = useLocation();
   const { userData } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; name: string }>({
+    lat: 8.9806, 
+    lng: 38.7578, 
+    name: userData?.location || "Bole, Addis Ababa"
+  });
   
   const { data: restaurants, isLoading } = useQuery<Restaurant[]>({
     queryKey: ['/api/restaurants'],
@@ -23,6 +28,10 @@ const Home = () => {
   const { data: categories } = useQuery<string[]>({
     queryKey: ['/api/categories'],
   });
+  
+  const handleUserLocationChange = useCallback((location: { lat: number; lng: number; name: string }) => {
+    setUserLocation(location);
+  }, []);
 
   const handleRestaurantClick = (id: number) => {
     setLocation(`/restaurant/${id}`);
@@ -55,7 +64,7 @@ const Home = () => {
             <div className="text-right">
               <p className="text-xs text-[#8B572A]">Delivering to</p>
               <div className="flex items-center">
-                <span className="font-medium text-[#4F2D1F] text-sm">{userData?.location || "Bole, Addis Ababa"}</span>
+                <span className="font-medium text-[#4F2D1F] text-sm">{userLocation.name}</span>
                 <Icons.chevronDown className="ml-1 text-[#8B572A] w-4 h-4" />
               </div>
             </div>
@@ -164,24 +173,23 @@ const Home = () => {
         >
           <h2 className="text-lg font-bold mb-3 font-dm-sans text-[#4F2D1F] flex items-center">
             <Icons.mapPin className="mr-2 text-[#8B572A]" />
-            Find on Map
+            Find Restaurants Near You
           </h2>
-          <div className="bg-[#E5A764]/10 rounded-lg h-48 flex items-center justify-center overflow-hidden relative">
-            <div className="absolute inset-0 opacity-10 pointer-events-none" 
-                style={{ 
-                  backgroundImage: "url('https://maps.googleapis.com/maps/api/staticmap?center=9.0092,38.7645&zoom=13&size=600x300&maptype=roadmap')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center" 
-                }}>
+          
+          <DeliveryMap 
+            height="180px"
+            onUserLocationChange={handleUserLocationChange}
+          />
+            
+          <div className="mt-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[#4F2D1F] font-medium">Ethiopian restaurants near you</p>
+              <p className="text-xs text-[#8B572A]">Showing restaurants within 3km</p>
             </div>
-            <div className="text-center relative z-10 bg-white/80 p-4 rounded-lg">
-              <Icons.map className="mx-auto text-4xl text-[#8B572A] mb-2" />
-              <p className="text-[#4F2D1F] font-medium">Find Nearby Ethiopian Restaurants</p>
-              <p className="text-xs text-[#8B572A]">Showing restaurants within 3km of your location</p>
-              <Button className="mt-3 bg-[#8B572A] hover:bg-[#4F2D1F] text-white">
-                Open Map
-              </Button>
-            </div>
+            <Button className="bg-[#8B572A] hover:bg-[#4F2D1F] text-white text-sm">
+              <Icons.map className="mr-1 h-4 w-4" />
+              View All
+            </Button>
           </div>
         </motion.div>
       </motion.div>
