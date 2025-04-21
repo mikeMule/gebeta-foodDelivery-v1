@@ -181,9 +181,21 @@ const RestaurantDetail = () => {
                   <h2 className="text-lg font-bold mb-4 font-dm-sans">{category}</h2>
                   
                   <div className="space-y-4">
-                    {foodItemsByCategory[category]?.map((item) => (
-                      <FoodItem key={item.id} foodItem={item} />
-                    ))}
+                    {foodItemsByCategory[category]?.map((item) => {
+                      // Check if the restaurant is open
+                      const isOpen = restaurant?.openingHours && restaurant?.closingHours ? 
+                        new Date().getHours() >= parseInt(restaurant.openingHours.split(':')[0]) && 
+                        new Date().getHours() < parseInt(restaurant.closingHours.split(':')[0])
+                        : false;
+                      
+                      return (
+                        <FoodItem 
+                          key={item.id} 
+                          foodItem={item} 
+                          isRestaurantOpen={isOpen}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               ))}

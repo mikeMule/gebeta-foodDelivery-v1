@@ -4,16 +4,28 @@ import { useCart } from "@/store/CartContext";
 import { motion } from "framer-motion";
 import { type FoodItem as FoodItemType } from "@shared/schema";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface FoodItemProps {
   foodItem: FoodItemType;
+  isRestaurantOpen?: boolean;
 }
 
-const FoodItem = ({ foodItem }: FoodItemProps) => {
+const FoodItem = ({ foodItem, isRestaurantOpen = true }: FoodItemProps) => {
   const { addToCart } = useCart();
   const [isHovered, setIsHovered] = useState(false);
+  const { toast } = useToast();
 
   const handleAddToCart = () => {
+    if (!isRestaurantOpen) {
+      toast({
+        title: "Restaurant is closed",
+        description: "Sorry, this restaurant is currently closed. Please try again during operating hours.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     addToCart({
       id: foodItem.id,
       name: foodItem.name,
@@ -21,6 +33,12 @@ const FoodItem = ({ foodItem }: FoodItemProps) => {
       quantity: 1,
       notes: "",
       restaurantId: foodItem.restaurantId
+    });
+
+    toast({
+      title: "Added to cart",
+      description: `${foodItem.name} has been added to your cart.`,
+      variant: "default",
     });
   };
 
@@ -55,18 +73,25 @@ const FoodItem = ({ foodItem }: FoodItemProps) => {
             className="w-full h-full object-cover rounded-lg shadow-sm"
           />
           <motion.button 
-            className="absolute -bottom-3 -right-3 w-10 h-10 bg-[#C73030] rounded-full flex items-center justify-center shadow-md"
+            className={`absolute -bottom-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center shadow-md
+              ${isRestaurantOpen ? 'bg-[#C73030]' : 'bg-gray-400 cursor-not-allowed'}`}
             onClick={handleAddToCart}
-            whileHover={{ scale: 1.1, backgroundColor: "#8B572A" }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: isRestaurantOpen ? 1.1 : 1, backgroundColor: isRestaurantOpen ? "#8B572A" : undefined }}
+            whileTap={{ scale: isRestaurantOpen ? 0.9 : 1 }}
             animate={{ 
-              scale: isHovered ? 1.05 : 1,
+              scale: isHovered && isRestaurantOpen ? 1.05 : 1,
               boxShadow: isHovered ? "0 4px 8px rgba(0, 0, 0, 0.2)" : "0 2px 4px rgba(0, 0, 0, 0.1)"
             }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             <Icons.plus className="text-white" />
           </motion.button>
+          
+          {!isRestaurantOpen && (
+            <div className="absolute top-0 left-0 right-0 bg-black/60 text-white text-xs font-medium text-center py-1 rounded-t-lg">
+              Closed
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>

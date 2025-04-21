@@ -218,7 +218,7 @@ const Home = () => {
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
                 <div className="p-2">
                   {/* Restaurant search results */}
-                  {restaurants?.filter(restaurant => 
+                  {restaurants && restaurants.filter(restaurant => 
                     restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
                   ).length > 0 && (
@@ -227,7 +227,7 @@ const Home = () => {
                         Restaurants
                       </div>
                       
-                      {restaurants
+                      {restaurants && restaurants
                         .filter(restaurant => 
                           restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -245,7 +245,11 @@ const Home = () => {
                             <div>
                               <div className="font-medium text-sm text-[#4F2D1F]">{restaurant.name}</div>
                               <div className="text-xs text-[#8B572A]">
-                                {restaurant.categories.join(', ')}
+                                {typeof restaurant.categories === 'string' 
+                                  ? restaurant.categories
+                                  : Array.isArray(restaurant.categories) 
+                                    ? restaurant.categories.join(', ')
+                                    : ''}
                               </div>
                             </div>
                           </div>
@@ -362,13 +366,13 @@ const Home = () => {
               </Button>
             </div>
             <div className="w-1/3 relative overflow-hidden rounded-lg">
-              <div className="absolute inset-0 bg-[#8B572A]/20"></div>
+              <div className="absolute inset-0 bg-gradient-to-b from-[#8B572A]/20 to-[#4F2D1F]/40 z-10"></div>
               <img 
-                src="/images/doro-wat.svg" 
+                src="/images/doro-wat.jpg" 
                 alt="Ethiopian Doro Wat promo" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#4F2D1F]/90 to-transparent p-2 text-center">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#4F2D1F]/90 to-transparent p-2 text-center z-20">
                 <span className="text-white text-xs font-medium">Traditional Recipe</span>
               </div>
             </div>
