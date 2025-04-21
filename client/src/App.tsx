@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -19,7 +19,7 @@ import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminRestaurantForm from "@/pages/AdminRestaurantForm";
 import { CartProvider } from "./store/CartContext";
-import { AuthProvider } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
 
 function App() {
@@ -87,15 +87,7 @@ function App() {
                     <Route path="/admin/restaurant/:id" component={AdminRestaurantForm} />
                     
                     {/* Fallback to appropriate page */}
-                    <Route path="/">
-                      {() => {
-                        // If the URL already has '/admin', don't redirect
-                        if (!location.startsWith('/admin')) {
-                          setLocation("/login");
-                        }
-                        return null;
-                      }}
-                    </Route>
+                    <Route path="/" component={RedirectHandler} />
                     <Route component={NotFound} />
                   </Switch>
                 </div>
@@ -107,6 +99,29 @@ function App() {
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+// Separate component for handling redirects
+function RedirectHandler() {
+  const { isAuthenticated } = useAuth();
+  const [location, setLocation] = useLocation();
+  
+  useEffect(() => {
+    // If the URL has '/admin', don't redirect
+    if (location.startsWith('/admin')) {
+      return;
+    }
+    
+    // If user is authenticated, redirect to home
+    if (isAuthenticated) {
+      setLocation("/home");
+    } else {
+      // If not authenticated, redirect to login
+      setLocation("/login");
+    }
+  }, [isAuthenticated, location, setLocation]);
+  
+  return null;
 }
 
 export default App;
