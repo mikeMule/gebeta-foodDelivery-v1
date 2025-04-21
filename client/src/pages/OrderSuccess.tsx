@@ -25,6 +25,7 @@ const OrderSuccess = () => {
   const [showContent, setShowContent] = useState(false);
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const [currentStep, setCurrentStep] = useState(1);
+  const [advanceComplete, setAdvanceComplete] = useState(false);
 
   // Define handlers first to avoid reference errors
   const handleTrackOrder = useCallback(() => {
@@ -69,25 +70,37 @@ const OrderSuccess = () => {
     };
   }, [clearCart]);
   
-  // Advance the order steps simulation
+  // Advance the order steps simulation - one step at a time with delays
   useEffect(() => {
-    // Only start advancing steps after showing content
-    if (!showContent) return;
+    if (!showContent || advanceComplete) return;
     
-    const stepTimer = setTimeout(() => {
-      if (currentStep < orderSteps.length) {
-        setCurrentStep(prev => Math.min(prev + 1, orderSteps.length));
-      }
-    }, 7000); // Move to next step every 7 seconds (faster for demo)
+    let timeouts: NodeJS.Timeout[] = [];
+    
+    // Schedule advancement of each step with increasing delays
+    const advanceStep = (step: number, delay: number) => {
+      const timer = setTimeout(() => {
+        setCurrentStep(step);
+        if (step >= orderSteps.length) {
+          setAdvanceComplete(true);
+        }
+      }, delay);
+      timeouts.push(timer);
+    };
+    
+    // Schedule each step advancement
+    advanceStep(1, 1000);   // Step 1 after 1s (almost immediate)
+    advanceStep(2, 7000);   // Step 2 after 7s
+    advanceStep(3, 14000);  // Step 3 after 14s
+    advanceStep(4, 21000);  // Step 4 after 21s
     
     return () => {
-      clearTimeout(stepTimer);
+      timeouts.forEach(clearTimeout);
     };
-  }, [currentStep, showContent]);
+  }, [showContent, advanceComplete]);
   
   // Handle auto-redirect to tracking page once all steps are complete
   useEffect(() => {
-    if (!showContent || currentStep < orderSteps.length) return;
+    if (!advanceComplete) return;
     
     const autoRedirectTimer = setTimeout(() => {
       handleTrackOrder();
@@ -96,7 +109,7 @@ const OrderSuccess = () => {
     return () => {
       clearTimeout(autoRedirectTimer);
     };
-  }, [currentStep, showContent, handleTrackOrder]);
+  }, [advanceComplete, handleTrackOrder]);
 
   // Helper to get the appropriate icon for the step
   const getStepIcon = (iconName: string) => {
