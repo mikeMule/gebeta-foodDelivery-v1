@@ -14,11 +14,17 @@ declare global {
   }
 }
 
+// Define a custom request type with guaranteed user
+interface AuthenticatedRequest extends Request {
+  user: User; // Overriding Express.Request.user to be non-optional
+}
+
 // Middleware to check if user is authenticated
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Authentication required" });
   }
+  // User is authenticated, call next middleware
   next();
 };
 
@@ -102,11 +108,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Order routes - require authentication
   app.post("/api/orders", requireAuth, async (req: Request, res: Response) => {
+    // TypeScript doesn't recognize that requireAuth middleware ensures req.user exists
+    // We'll use the non-null assertion operator (!) to tell TypeScript that req.user is defined
+    const authenticatedReq = req as AuthenticatedRequest;
+    
     try {
-      const orderData = insertOrderSchema.parse(req.body);
+      const orderData = insertOrderSchema.parse(authenticatedReq.body);
+      
+      // Now we can access the user without the non-null assertion
+      const userId = authenticatedReq.user.id;
       
       // Enforce that the userId in the order matches the authenticated user
-      if (orderData.userId !== req.user.id) {
+      if (orderData.userId !== userId) {
         return res.status(403).json({ message: "Cannot create order for another user" });
       }
       
@@ -145,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Users can only access their own orders
-      if (order.userId !== req.user.id) {
+      if (order.userId !== req.user!.id) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -159,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's orders
   app.get("/api/user/orders", requireAuth, async (req: Request, res: Response) => {
     try {
-      const orders = await storage.getOrdersByUser(req.user.id);
+      const orders = await storage.getOrdersByUser(req.user!.id);
       res.json(orders);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch orders" });
@@ -171,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reviewData = {
         ...req.body,
-        userId: req.user.id // Set the userId from the authenticated user
+        userId: req.user!.id // Set the userId from the authenticated user
       };
       
       const validatedData = insertReviewSchema.parse(reviewData);
