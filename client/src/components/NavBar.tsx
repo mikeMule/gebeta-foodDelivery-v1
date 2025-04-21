@@ -2,70 +2,249 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 
 const NavBar = () => {
   const [location, setLocation] = useLocation();
   const { cartItems } = useCart();
+  const [activeTab, setActiveTab] = useState<string>('/home');
+  const [isCartBouncing, setIsCartBouncing] = useState(false);
+  const [cartCount, setCartCount] = useState(cartItems.length);
   
+  useEffect(() => {
+    // Set active tab based on current location
+    setActiveTab(location);
+  }, [location]);
+  
+  useEffect(() => {
+    // Animate cart icon when items are added
+    if (cartItems.length > cartCount) {
+      setIsCartBouncing(true);
+      setTimeout(() => setIsCartBouncing(false), 1000);
+    }
+    setCartCount(cartItems.length);
+  }, [cartItems.length, cartCount]);
+
   const isActive = (path: string) => {
-    return location === path;
+    return activeTab === path;
+  };
+  
+  const handleNavigation = (path: string) => {
+    setActiveTab(path);
+    setLocation(path);
+  };
+
+  // Animation variants
+  const tabVariants = {
+    active: {
+      color: "#8B572A",
+      opacity: 1,
+      y: -5,
+      transition: { type: "spring", stiffness: 300, damping: 20 }
+    },
+    inactive: {
+      color: "#8B572A80",
+      opacity: 0.5,
+      y: 0
+    }
+  };
+  
+  const iconVariants = {
+    active: { 
+      scale: 1.2,
+      y: -2,
+      transition: { type: "spring", stiffness: 500, damping: 15 }
+    },
+    inactive: { 
+      scale: 1,
+      y: 0
+    },
+    bounce: {
+      scale: [1, 1.4, 0.9, 1.1, 1],
+      rotate: [0, -10, 10, -5, 0],
+      transition: {
+        duration: 0.5,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  const navbarVariants = {
+    hidden: { y: 100, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { 
+        type: "spring", 
+        stiffness: 300, 
+        damping: 30,
+        delayChildren: 0.2,
+        staggerChildren: 0.08
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 20 }
+    }
+  };
+
+  const tabIndicatorVariants = {
+    initial: { width: 0, opacity: 0 },
+    animate: { width: "50%", opacity: 1, transition: { duration: 0.2 } }
   };
 
   return (
     <motion.div 
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5A764]/30 px-4 py-3 flex justify-between items-center shadow-sm z-20"
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5A764]/30 px-4 py-3 flex justify-between items-center shadow-md z-20"
+      variants={navbarVariants}
+      initial="hidden"
+      animate="visible"
     >
-      <Button 
-        variant="ghost"
-        className={`flex flex-col items-center w-1/4 ${isActive('/home') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-        onClick={() => setLocation('/home')}
+      <motion.div 
+        variants={itemVariants}
+        className="flex justify-between items-center w-full"
       >
-        <Icons.home className={`${isActive('/home') ? 'text-xl' : 'text-lg'} transition-all duration-200`} />
-        <span className="text-xs mt-1 font-medium">Home</span>
-      </Button>
-      
-      <Button 
-        variant="ghost"
-        className={`flex flex-col items-center w-1/4 ${isActive('/search') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-        onClick={() => setLocation('/search')}
-      >
-        <Icons.search className={`${isActive('/search') ? 'text-xl' : 'text-lg'} transition-all duration-200`} />
-        <span className="text-xs mt-1 font-medium">Search</span>
-      </Button>
-      
-      <Button 
-        variant="ghost"
-        className={`flex flex-col items-center w-1/4 ${isActive('/favorites') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-        onClick={() => setLocation('/favorites')}
-      >
-        <Icons.heart className={`${isActive('/favorites') ? 'text-xl' : 'text-lg'} transition-all duration-200`} />
-        <span className="text-xs mt-1 font-medium">Favorites</span>
-      </Button>
-      
-      <Button 
-        variant="ghost"
-        className={`flex flex-col items-center w-1/4 ${isActive('/cart') || cartItems.length > 0 ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-        onClick={() => setLocation('/cart')}
-      >
-        <div className="relative">
-          <Icons.shoppingBag className={`${isActive('/cart') ? 'text-xl' : 'text-lg'} transition-all duration-200`} />
-          {cartItems.length > 0 && (
-            <motion.div 
-              className="absolute -top-1 -right-1 w-5 h-5 bg-[#C73030] rounded-full flex items-center justify-center"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 500, damping: 15 }}
-            >
-              <span className="text-[10px] text-white font-bold">{cartItems.length}</span>
-            </motion.div>
+        <Button 
+          variant="ghost"
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/home') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/home')}
+        >
+          <motion.div
+            variants={iconVariants}
+            animate={isActive('/home') ? 'active' : 'inactive'}
+          >
+            <Icons.home />
+          </motion.div>
+          <motion.span 
+            className="text-xs mt-1 font-medium"
+            variants={tabVariants}
+            animate={isActive('/home') ? 'active' : 'inactive'}
+          >
+            Home
+          </motion.span>
+          
+          {isActive('/home') && (
+            <motion.div
+              className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
+              variants={tabIndicatorVariants}
+              initial="initial"
+              animate="animate"
+              layoutId="activeTabIndicator"
+            />
           )}
-        </div>
-        <span className="text-xs mt-1 font-medium">Cart</span>
-      </Button>
+        </Button>
+        
+        <Button 
+          variant="ghost"
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/search') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/search')}
+        >
+          <motion.div
+            variants={iconVariants}
+            animate={isActive('/search') ? 'active' : 'inactive'}
+          >
+            <Icons.search />
+          </motion.div>
+          <motion.span 
+            className="text-xs mt-1 font-medium"
+            variants={tabVariants}
+            animate={isActive('/search') ? 'active' : 'inactive'}
+          >
+            Search
+          </motion.span>
+          
+          {isActive('/search') && (
+            <motion.div
+              className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
+              variants={tabIndicatorVariants}
+              initial="initial"
+              animate="animate"
+              layoutId="activeTabIndicator"
+            />
+          )}
+        </Button>
+        
+        <Button 
+          variant="ghost"
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/favorites') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/favorites')}
+        >
+          <motion.div
+            variants={iconVariants}
+            animate={isActive('/favorites') ? 'active' : 'inactive'}
+          >
+            <Icons.heart />
+          </motion.div>
+          <motion.span 
+            className="text-xs mt-1 font-medium"
+            variants={tabVariants}
+            animate={isActive('/favorites') ? 'active' : 'inactive'}
+          >
+            Favorites
+          </motion.span>
+          
+          {isActive('/favorites') && (
+            <motion.div
+              className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
+              variants={tabIndicatorVariants}
+              initial="initial"
+              animate="animate"
+              layoutId="activeTabIndicator"
+            />
+          )}
+        </Button>
+        
+        <Button 
+          variant="ghost"
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/cart') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/cart')}
+        >
+          <div className="relative">
+            <motion.div
+              variants={iconVariants}
+              animate={isCartBouncing ? 'bounce' : isActive('/cart') ? 'active' : 'inactive'}
+            >
+              <Icons.shoppingBag />
+            </motion.div>
+            <AnimatePresence>
+              {cartItems.length > 0 && (
+                <motion.div 
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-[#C73030] rounded-full flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                >
+                  <span className="text-[10px] text-white font-bold">{cartItems.length}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <motion.span 
+            className="text-xs mt-1 font-medium"
+            variants={tabVariants}
+            animate={isActive('/cart') ? 'active' : 'inactive'}
+          >
+            Cart
+          </motion.span>
+          
+          {isActive('/cart') && (
+            <motion.div
+              className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
+              variants={tabIndicatorVariants}
+              initial="initial"
+              animate="animate"
+              layoutId="activeTabIndicator"
+            />
+          )}
+        </Button>
+      </motion.div>
     </motion.div>
   );
 };
