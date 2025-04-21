@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -6,23 +6,113 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import CartItem from "@/components/CartItem";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
 import { type Restaurant } from "@shared/schema";
+import { Car, Bike, Truck } from "lucide-react";
+
+type DeliveryOption = {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  description: string;
+  baseFee: number;
+  extraFeePerKm?: number;
+  maxDistance?: number;
+  minDistance?: number;
+  estimatedTime: string;
+  recommended?: boolean;
+};
+
+const deliveryOptions: DeliveryOption[] = [
+  {
+    id: "ebike",
+    name: "E-Bike",
+    icon: <Truck className="h-5 w-5" />,
+    description: "Fastest eco-friendly option",
+    baseFee: 250,
+    maxDistance: 5,
+    estimatedTime: "15-25 min",
+    recommended: true
+  },
+  {
+    id: "bike",
+    name: "Normal Bike",
+    icon: <Bike className="h-5 w-5" />,
+    description: "Budget friendly option",
+    baseFee: 150,
+    maxDistance: 3,
+    estimatedTime: "20-35 min"
+  },
+  {
+    id: "car",
+    name: "Car",
+    icon: <Car className="h-5 w-5" />,
+    description: "For longer distances",
+    baseFee: 345,
+    minDistance: 5,
+    estimatedTime: "30-45 min"
+  }
+];
 
 const Cart = () => {
   const [, setLocation] = useLocation();
   const { cartItems, restaurantId, totalAmount, clearCart } = useCart();
   const [instructions, setInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [deliveryOption, setDeliveryOption] = useState<string>("ebike");
   
   const { data: restaurant } = useQuery<Restaurant>({
     queryKey: [`/api/restaurants/${restaurantId}`],
     enabled: !!restaurantId,
   });
 
-  const deliveryFee = restaurant?.deliveryFee || 0;
+  // Calculate the appropriate delivery option based on distance
+  useEffect(() => {
+    if (restaurant) {
+      const distance = restaurant.distance;
+      
+      if (distance > 5) {
+        setDeliveryOption("car");
+      } else if (distance > 3) {
+        setDeliveryOption("ebike");
+      } else {
+        setDeliveryOption("bike");
+      }
+    }
+  }, [restaurant]);
+
+  // Calculate delivery fee based on selected option and distance
+  const calculateDeliveryFee = (): number => {
+    if (!restaurant) return 0;
+    
+    const distance = restaurant.distance;
+    const option = deliveryOptions.find(opt => opt.id === deliveryOption);
+    
+    if (!option) return 0;
+    
+    // Check if this option is valid for the distance
+    if (option.minDistance && distance < option.minDistance) {
+      return 0; // Invalid option for this distance
+    }
+    
+    if (option.maxDistance && distance > option.maxDistance) {
+      return 0; // Invalid option for this distance
+    }
+    
+    // Calculate fee with any per-km extra charges
+    let fee = option.baseFee;
+    if (option.extraFeePerKm) {
+      fee += option.extraFeePerKm * distance;
+    }
+    
+    return fee;
+  };
+
+  const deliveryFee = calculateDeliveryFee();
   const serviceFee = 30; // Fixed service fee
   const totalWithFees = totalAmount + deliveryFee + serviceFee;
 
@@ -35,6 +125,9 @@ const Cart = () => {
     clearCart();
     setLocation("/order-tracking");
   };
+  
+  // Get the selected delivery option details
+  const selectedDeliveryOption = deliveryOptions.find(opt => opt.id === deliveryOption);
 
   return (
     <motion.div 
@@ -148,6 +241,83 @@ const Cart = () => {
               </div>
             </motion.div>
             
+            <motion.div 
+              className="bg-white rounded-xl shadow-sm p-4 mb-4"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.25 }}
+            >
+              <h3 className="font-medium mb-3">Delivery Options</h3>
+              
+              <div className="grid gap-3">
+                {deliveryOptions.map((option) => {
+                  const isValid = restaurant && 
+                    ((!option.minDistance || restaurant.distance >= option.minDistance) && 
+                     (!option.maxDistance || restaurant.distance <= option.maxDistance));
+                  
+                  return (
+                    <div
+                      key={option.id}
+                      onClick={() => isValid && setDeliveryOption(option.id)}
+                      className={`
+                        border rounded-lg p-3 transition-all relative
+                        ${!isValid ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/70'}
+                        ${deliveryOption === option.id ? 'border-primary bg-primary/5' : 'border-neutral-200'}
+                      `}
+                    >
+                      <div className="flex items-center">
+                        {option.recommended && (
+                          <Badge 
+                            className="absolute -top-2 -right-1 bg-green-500 text-[10px] px-2 py-0 h-5"
+                            variant="secondary"
+                          >
+                            Recommended
+                          </Badge>
+                        )}
+                        
+                        <div className={`mr-3 p-2 rounded-full ${deliveryOption === option.id ? 'bg-primary text-white' : 'bg-neutral-100'}`}>
+                          {option.icon}
+                        </div>
+                        
+                        <div className="flex-grow">
+                          <div className="flex justify-between">
+                            <p className="font-medium">{option.name}</p>
+                            <p className="font-medium text-right">Birr {option.baseFee.toFixed(2)}</p>
+                          </div>
+                          <div className="flex justify-between">
+                            <p className="text-xs text-neutral-500">{option.description}</p>
+                            <p className="text-xs text-neutral-500">{option.estimatedTime}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {!isValid && (
+                        <div className="mt-2 text-xs text-red-500">
+                          {option.minDistance && restaurant && restaurant.distance < option.minDistance 
+                            ? `Available only for distances above ${option.minDistance} km`
+                            : `Available only for distances below ${option.maxDistance} km`
+                          }
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {restaurant && (
+                <div className="mt-3 text-xs text-neutral-500">
+                  <p>
+                    Delivery costs are calculated based on the distance ({restaurant.distance.toFixed(1)} km)
+                  </p>
+                  <ul className="mt-1 list-disc ml-4">
+                    <li>Normal Bike: Up to 3 km - 150 ETB</li>
+                    <li>E-Bike: Up to 5 km - 250 ETB</li>
+                    <li>Car: Above 5 km - 345 ETB</li>
+                  </ul>
+                </div>
+              )}
+            </motion.div>
+
             <motion.div 
               className="bg-white rounded-xl shadow-sm p-4"
               initial={{ y: 20, opacity: 0 }}
