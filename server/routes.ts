@@ -217,6 +217,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch categories" });
     }
   });
+  
+  // Geocoding endpoint using Google Maps API
+  app.get("/api/geocode", async (req: Request, res: Response) => {
+    try {
+      const { lat, lng } = req.query;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ error: "Latitude and longitude are required parameters" });
+      }
+      
+      // Get Google Maps API key from environment variables
+      const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+      
+      if (!GOOGLE_API_KEY) {
+        console.error("Google Maps API key is missing");
+        // Provide a specific Ethiopian location based on coordinates
+        // For demonstration/fallback purposes
+        
+        const lat_num = parseFloat(lat as string);
+        const lng_num = parseFloat(lng as string);
+        
+        // Define some regions in Addis Ababa and nearby areas
+        const ethiopiaRegions = [
+          { name: "Bole", lat: 8.9806, lng: 38.7578, radius: 3 },
+          { name: "Meskel Square", lat: 9.0105, lng: 38.7600, radius: 2 },
+          { name: "Merkato", lat: 9.0366, lng: 38.7489, radius: 2.5 },
+          { name: "Kazanchis", lat: 9.0182, lng: 38.7792, radius: 1.5 },
+          { name: "Piazza", lat: 9.0387, lng: 38.7526, radius: 1.8 },
+          { name: "Sidist Kilo", lat: 9.0391, lng: 38.7633, radius: 1.2 },
+          { name: "Mexico", lat: 8.9978, lng: 38.7868, radius: 1.7 },
+          { name: "Kality", lat: 8.9135, lng: 38.7914, radius: 4 },
+          { name: "Megenagna", lat: 9.0169, lng: 38.8011, radius: 2.2 },
+          { name: "CMC", lat: 9.0491, lng: 38.8286, radius: 2.8 },
+        ];
+        
+        // Calculate distance between two points
+        const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+          const R = 6371; // Radius of earth in km
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLng = (lng2 - lng1) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          return R * c;
+        };
+        
+        // Find the closest region
+        let closestRegion = ethiopiaRegions[0];
+        let minDistance = calculateDistance(lat_num, lng_num, ethiopiaRegions[0].lat, ethiopiaRegions[0].lng);
+        
+        for (let i = 1; i < ethiopiaRegions.length; i++) {
+          const distance = calculateDistance(lat_num, lng_num, ethiopiaRegions[i].lat, ethiopiaRegions[i].lng);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestRegion = ethiopiaRegions[i];
+          }
+        }
+        
+        return res.json({ locationName: closestRegion.name });
+      }
+      
+      // Make a request to Google Maps Geocoding API
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_API_KEY}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.status === "OK" && data.results.length > 0) {
+        // Extract the most relevant location info
+        let locationName = "Your Location";
+        
+        // Find the most appropriate address component
+        for (const result of data.results) {
+          // Try to get a neighborhood or district name first
+          const addressComponents = result.address_components;
+          for (const component of addressComponents) {
+            if (component.types.includes("sublocality_level_1") || 
+                component.types.includes("neighborhood") ||
+                component.types.includes("locality")) {
+              locationName = component.long_name;
+              break;
+            }
+          }
+          
+          // If we found a good location name, break
+          if (locationName !== "Your Location") break;
+        }
+        
+        // If we couldn't find a specific neighborhood, use formatted address
+        if (locationName === "Your Location" && data.results[0].formatted_address) {
+          // Just use the first part of the address to avoid showing the full address
+          locationName = data.results[0].formatted_address.split(',')[0];
+        }
+        
+        return res.json({ locationName });
+      } else {
+        console.error("Google Maps API error:", data.status);
+        return res.status(500).json({ error: "Unable to geocode location" });
+      }
+    } catch (error) {
+      console.error("Error in geocoding endpoint:", error);
+      return res.status(500).json({ error: "Server error during geocoding" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
