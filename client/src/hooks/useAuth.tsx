@@ -3,6 +3,10 @@ import { createContext, useContext, useState, ReactNode } from "react";
 interface UserData {
   phoneNumber: string;
   location?: string;
+  fullName?: string;
+  email?: string;
+  idNumber?: string;
+  idVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -11,6 +15,7 @@ interface AuthContextType {
   login: (data: UserData) => void;
   verifyOtp: (otp: string) => void;
   logout: () => void;
+  updateProfile: (data: Partial<UserData>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +43,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
     setUserData(null);
   };
+  
+  const updateProfile = (data: Partial<UserData>) => {
+    if (userData) {
+      setUserData({ ...userData, ...data });
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -47,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         verifyOtp,
         logout,
+        updateProfile,
       }}
     >
       {children}

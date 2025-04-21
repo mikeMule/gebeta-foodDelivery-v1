@@ -1,289 +1,85 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import Confetti from 'react-confetti';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/lib/icons';
 import { useCart } from '@/store/CartContext';
 
-// Order status timeline steps
-const orderSteps = [
-  { id: 1, name: 'Order Confirmed', description: 'Your order has been received', icon: 'check', time: 'Just now', completed: true },
-  { id: 2, name: 'Preparing Food', description: 'The restaurant is preparing your order', icon: 'utensils', time: '5 mins', completed: false },
-  { id: 3, name: 'On The Way', description: 'Your order is on the way', icon: 'truck', time: '15 mins', completed: false },
-  { id: 4, name: 'Delivered', description: 'Enjoy your meal!', icon: 'package', time: '25-30 mins', completed: false }
-];
-
 const OrderSuccess = () => {
   const [, setLocation] = useLocation();
   const { clearCart } = useCart();
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight
-  });
-  const [showConfetti, setShowConfetti] = useState(true);
-  const [showContent, setShowContent] = useState(false);
-  const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
-  const [currentStep, setCurrentStep] = useState(1);
-  const [advanceComplete, setAdvanceComplete] = useState(false);
   const [trackingNumber] = useState(() => Math.random().toString(36).substring(2, 10).toUpperCase());
   const [isLoading, setIsLoading] = useState(false);
+  const [redirectTimer, setRedirectTimer] = useState(5);
 
-  // Define handlers first to avoid reference errors
-  const handleTrackOrder = useCallback(() => {
-    setIsLoading(true);
-    
-    // Simulate network delay
-    setTimeout(() => {
-      setIsLoading(false);
-      setLocation('/order-tracking');
-    }, 1500);
-  }, [setLocation]);
-
-  const handleReturnHome = useCallback(() => {
-    setLocation('/');
-  }, [setLocation]);
-
-  // Update window dimensions when window resizes
+  // Clear cart on page load
   useEffect(() => {
-    const handleResize = () => {
-      setWindowDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Handle cart clearing and confetti
-  useEffect(() => {
-    // Clear cart when arriving on this page
     clearCart();
     
-    // Show content after a slight delay for animation purposes
-    const timer = setTimeout(() => {
-      setShowContent(true);
-    }, 800);
-    
-    // Stop confetti after 6 seconds
-    const confettiTimer = setTimeout(() => {
-      setShowConfetti(false);
-    }, 6000);
-    
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(confettiTimer);
-    };
-  }, [clearCart]);
-  
-  // Advance the order steps simulation - one step at a time with delays
-  useEffect(() => {
-    if (!showContent || advanceComplete) return;
-    
-    let timeouts: NodeJS.Timeout[] = [];
-    
-    // Schedule advancement of each step with increasing delays
-    const advanceStep = (step: number, delay: number) => {
-      const timer = setTimeout(() => {
-        setCurrentStep(step);
-        if (step >= orderSteps.length && !advanceComplete) {
-          setAdvanceComplete(true);
+    // Auto-redirect after a few seconds
+    const timer = setInterval(() => {
+      setRedirectTimer(prev => {
+        if (prev <= 1) {
+          handleViewOrder();
+          return 0;
         }
-      }, delay);
-      timeouts.push(timer);
-    };
+        return prev - 1;
+      });
+    }, 1000);
     
-    // Schedule each step advancement
-    advanceStep(1, 1000);   // Step 1 after 1s (almost immediate)
-    advanceStep(2, 7000);   // Step 2 after 7s
-    advanceStep(3, 14000);  // Step 3 after 14s
-    advanceStep(4, 21000);  // Step 4 after 21s
-    
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
-  }, [showContent, advanceComplete]);
-  
-  // Handle auto-redirect to tracking page once all steps are complete
-  useEffect(() => {
-    if (!advanceComplete) return;
-    
-    // Set up a one-time timer for auto-redirect
-    const autoRedirectTimer = setTimeout(() => {
-      // Manually trigger the actions instead of using the handler
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        setLocation('/order-tracking');
-      }, 1500);
-    }, 5000);
-    
-    return () => {
-      clearTimeout(autoRedirectTimer);
-    };
-  }, [advanceComplete, setLocation]);
+    return () => clearInterval(timer);
+  }, [clearCart]);
 
-  // Helper to get the appropriate icon for the step
-  const getStepIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'check': return <Icons.check className="w-5 h-5" />;
-      case 'utensils': return <Icons.chefHat className="w-5 h-5" />;
-      case 'truck': return <Icons.truck className="w-5 h-5" />;
-      case 'package': return <Icons.package className="w-5 h-5" />;
-      default: return <Icons.circle className="w-5 h-5" />;
-    }
+  const handleViewOrder = () => {
+    setIsLoading(true);
+    // Redirect to tracking page after a short delay
+    setTimeout(() => {
+      setLocation('/order-tracking');
+    }, 500);
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center relative px-4 py-12 bg-[#FFF9F2]">
-      {showConfetti && (
-        <Confetti
-          width={windowDimensions.width}
-          height={windowDimensions.height}
-          recycle={false}
-          numberOfPieces={500}
-          gravity={0.15}
-          colors={['#8B572A', '#E5A764', '#FFF9F2', '#4F2D1F', '#D35400']}
-        />
-      )}
-      
+    <div className="min-h-screen flex flex-col justify-center items-center bg-[#FFF9F2]">
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ 
           type: "spring", 
           stiffness: 300, 
-          damping: 20, 
-          delay: 0.2 
+          damping: 20
         }}
-        className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6"
+        className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-8"
       >
         <Icons.check className="w-12 h-12 text-white" />
       </motion.div>
       
-      {showContent && (
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-2xl font-bold mb-2 text-[#4F2D1F]">Order Successful!</h1>
-          <p className="text-[#8B572A] mb-6">Your order #{orderNumber} has been placed</p>
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <h1 className="text-2xl font-bold mb-2 text-[#4F2D1F]">Thank You!</h1>
+        <p className="text-[#8B572A] mb-6">Your order has been placed successfully</p>
+        
+        <div className="max-w-xs mx-auto">
+          <p className="text-sm text-[#8B572A] mb-1">Tracking number</p>
+          <p className="text-lg font-bold text-[#4F2D1F] mb-8">{trackingNumber}</p>
           
-          <motion.div 
-            className="bg-white rounded-xl shadow-md p-6 mb-8 max-w-md w-full mx-auto border border-[#E5A764]/20"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <Button 
+            className="bg-[#8B572A] hover:bg-[#4F2D1F] text-white w-full py-6 mb-2"
+            onClick={handleViewOrder}
+            isLoading={isLoading}
           >
-            {/* Order Status Timeline */}
-            <div className="mb-6">
-              <h3 className="font-bold text-[#4F2D1F] mb-4 text-left">Order Status</h3>
-              <div className="space-y-0">
-                {orderSteps.map((step, index) => {
-                  const isStepCompleted = step.id <= currentStep;
-                  return (
-                    <div key={step.id} className="relative">
-                      {/* Connecting line */}
-                      {index < orderSteps.length - 1 && (
-                        <div 
-                          className={`absolute left-[15px] top-[30px] w-[2px] h-[calc(100%-15px)] ${
-                            isStepCompleted && orderSteps[index + 1].id <= currentStep 
-                              ? 'bg-[#8B572A]' 
-                              : 'bg-gray-200'
-                          } transition-colors duration-500`}
-                        />
-                      )}
-                      
-                      <div className="flex items-start py-2">
-                        <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full ${
-                          isStepCompleted ? 'bg-[#8B572A]' : 'bg-gray-200'
-                        } flex items-center justify-center text-white transition-colors duration-500`}>
-                          {getStepIcon(step.icon)}
-                        </div>
-                        
-                        <div className="ml-4 flex-grow">
-                          <div className="flex justify-between items-center">
-                            <h4 className={`font-medium ${isStepCompleted ? 'text-[#4F2D1F]' : 'text-gray-500'}`}>
-                              {step.name}
-                            </h4>
-                            <span className="text-xs text-[#8B572A]">{step.time}</span>
-                          </div>
-                          <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5A764]/20">
-              <div className="text-left">
-                <p className="text-sm text-[#8B572A]">Estimated Delivery Time</p>
-                <p className="text-lg font-bold text-[#4F2D1F]">25-35 minutes</p>
-              </div>
-              <div className="w-12 h-12 bg-[#E5A764]/20 rounded-full flex items-center justify-center">
-                <Icons.clock className="w-6 h-6 text-[#8B572A]" />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5A764]/20">
-              <div className="text-left">
-                <p className="text-sm text-[#8B572A]">Delivery Address</p>
-                <p className="text-[#4F2D1F] font-medium">Meskel Square, Addis Ababa</p>
-              </div>
-              <div className="w-12 h-12 bg-[#E5A764]/20 rounded-full flex items-center justify-center">
-                <Icons.mapPin className="w-6 h-6 text-[#8B572A]" />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5A764]/20">
-              <div className="text-left">
-                <p className="text-sm text-[#8B572A]">Payment Method</p>
-                <p className="text-[#4F2D1F] font-medium">TeleBirr</p>
-              </div>
-              <div className="w-12 h-12 bg-[#E5A764]/20 rounded-full flex items-center justify-center">
-                <Icons.creditCard className="w-6 h-6 text-[#8B572A]" />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="text-left">
-                <p className="text-sm text-[#8B572A]">Tracking Number</p>
-                <p className="text-lg font-bold text-[#4F2D1F]">{trackingNumber}</p>
-              </div>
-              <div className="w-12 h-12 bg-[#E5A764]/20 rounded-full flex items-center justify-center">
-                <Icons.mapPin className="w-6 h-6 text-[#8B572A]" />
-              </div>
-            </div>
-          </motion.div>
+            <Icons.mapPin className="mr-2 h-5 w-5" />
+            Track Order
+          </Button>
           
-          <div className="flex flex-col space-y-3 max-w-md w-full mx-auto">
-            <Button 
-              className="bg-[#8B572A] hover:bg-[#4F2D1F] text-white font-medium py-6"
-              onClick={handleTrackOrder}
-              isLoading={isLoading}
-              loadingText="Loading Tracking Info..."
-            >
-              <Icons.mapPin className="mr-2 h-5 w-5" />
-              Track My Order
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="border-[#8B572A] text-[#8B572A] hover:bg-[#E5A764]/10 font-medium py-6"
-              onClick={handleReturnHome}
-            >
-              <Icons.home className="mr-2 h-5 w-5" />
-              Return to Home
-            </Button>
-          </div>
-        </motion.div>
-      )}
+          <p className="text-sm text-[#8B572A] mt-4">
+            Redirecting to order tracking in {redirectTimer} seconds...
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 };
