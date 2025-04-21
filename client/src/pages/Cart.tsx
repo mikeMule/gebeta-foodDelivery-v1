@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import CartItem from "@/components/CartItem";
 import DeliveryMap from "@/components/DeliveryMap";
+import TelebirrQRCode from "@/components/TelebirrQRCode";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
 import { type Restaurant } from "@shared/schema";
@@ -286,20 +287,26 @@ const Cart = () => {
                           </Badge>
                         )}
                         
-                        <div className={`mr-3 p-2.5 rounded-full transition-all ${
-                          deliveryOption === option.id 
-                            ? 'bg-primary text-white shadow-md scale-110 transform' 
-                            : 'bg-neutral-100'
-                        }`}>
+                        <motion.div 
+                          className={`mr-3 p-2.5 rounded-full transition-all ${
+                            deliveryOption === option.id 
+                              ? 'bg-[#8B572A] text-white shadow-md' 
+                              : 'bg-neutral-100 text-neutral-500'
+                          }`}
+                          animate={{
+                            scale: deliveryOption === option.id ? 1.1 : 1,
+                          }}
+                          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                        >
                           {option.icon}
-                        </div>
+                        </motion.div>
                         
                         <div className="flex-grow">
                           <div className="flex justify-between">
-                            <p className={`font-medium ${deliveryOption === option.id ? 'text-primary' : ''}`}>
+                            <p className={`font-medium ${deliveryOption === option.id ? 'text-[#8B572A]' : ''}`}>
                               {option.name}
                             </p>
-                            <p className={`font-medium text-right ${deliveryOption === option.id ? 'text-primary' : ''}`}>
+                            <p className={`font-medium text-right ${deliveryOption === option.id ? 'text-[#8B572A]' : ''}`}>
                               Birr {option.baseFee.toFixed(2)}
                             </p>
                           </div>
@@ -310,11 +317,16 @@ const Cart = () => {
                         </div>
 
                         {deliveryOption === option.id && (
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 h-full flex items-center pointer-events-none">
-                            <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center">
-                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 h-full flex items-center pointer-events-none"
+                          >
+                            <div className="bg-[#8B572A] rounded-full p-1 text-white">
+                              <Icons.check className="h-4 w-4" />
                             </div>
-                          </div>
+                          </motion.div>
                         )}
                       </div>
                       
@@ -354,21 +366,66 @@ const Cart = () => {
               <h3 className="font-medium mb-3">Payment Method</h3>
               
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                <div className={`border rounded-lg p-3 flex items-center mb-3 ${paymentMethod === 'cash' ? 'border-primary' : 'border-neutral-200'}`}>
+                <div className={`border rounded-lg p-3 flex items-center mb-3 ${
+                  paymentMethod === 'cash' 
+                    ? 'border-[#8B572A] bg-[#E5A764]/10' 
+                    : 'border-neutral-200'
+                } cursor-pointer transition-all duration-300`}
+                onClick={() => setPaymentMethod('cash')}
+                >
                   <RadioGroupItem value="cash" id="cash" className="mr-3" />
-                  <Label htmlFor="cash" className="font-medium flex-grow">
+                  <Label htmlFor="cash" className="font-medium flex-grow cursor-pointer">
                     Cash on Delivery
                   </Label>
+                  {paymentMethod === 'cash' && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="bg-[#8B572A] rounded-full p-1 text-white"
+                    >
+                      <Icons.check className="h-4 w-4" />
+                    </motion.div>
+                  )}
                 </div>
                 
-                <div className={`border rounded-lg p-3 flex items-center ${paymentMethod === 'telebirr' ? 'border-primary' : 'border-neutral-200'}`}>
+                <div className={`border rounded-lg p-3 flex items-center ${
+                  paymentMethod === 'telebirr' 
+                    ? 'border-[#8B572A] bg-[#E5A764]/10' 
+                    : 'border-neutral-200'
+                } cursor-pointer transition-all duration-300`}
+                onClick={() => setPaymentMethod('telebirr')}
+                >
                   <RadioGroupItem value="telebirr" id="telebirr" className="mr-3" />
-                  <Label htmlFor="telebirr" className="font-medium flex-grow">
+                  <Label htmlFor="telebirr" className="font-medium flex-grow cursor-pointer">
                     Telebirr
                   </Label>
-                  <Icons.creditCard className="text-neutral-400" />
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Recommended</span>
+                    {paymentMethod === 'telebirr' ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="bg-[#8B572A] rounded-full p-1 text-white"
+                      >
+                        <Icons.check className="h-4 w-4" />
+                      </motion.div>
+                    ) : (
+                      <Icons.creditCard className="text-neutral-400" />
+                    )}
+                  </div>
                 </div>
               </RadioGroup>
+              
+              {paymentMethod === 'telebirr' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="mt-4 p-4 border border-[#E5A764]/30 rounded-lg bg-[#FFF9F2]"
+                >
+                  <TelebirrQRCode amount={totalWithFees} />
+                </motion.div>
+              )}
             </motion.div>
           </>
         )}
@@ -376,17 +433,26 @@ const Cart = () => {
       
       {cartItems.length > 0 && (
         <div className="fixed bottom-[70px] left-0 right-0 bg-white border-t border-neutral-200 p-4 z-10">
-          <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-md transition-all duration-300 scale-icon"
-            onClick={handleCheckout}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {selectedDeliveryOption?.icon && (
-              <div className="mr-1">
-                {selectedDeliveryOption.icon}
-              </div>
-            )}
-            <span>Proceed to Checkout • Birr {totalWithFees.toFixed(2)}</span>
-          </Button>
+            <Button 
+              className="w-full bg-[#8B572A] hover:bg-[#8B572A]/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-md transition-all duration-300"
+              onClick={handleCheckout}
+            >
+              {selectedDeliveryOption?.icon && (
+                <motion.div 
+                  className="mr-1 bg-white/20 p-1 rounded-full"
+                  animate={{ rotate: [0, 5, 0, -5, 0] }}
+                  transition={{ repeat: Infinity, duration: 2, repeatDelay: 3 }}
+                >
+                  {selectedDeliveryOption.icon}
+                </motion.div>
+              )}
+              <span>Proceed to Checkout • Birr {totalWithFees.toFixed(2)}</span>
+            </Button>
+          </motion.div>
           
           <p className="text-center text-xs text-neutral-500 mt-2">
             Selected delivery: {selectedDeliveryOption?.name} • Delivery Fee: Birr {deliveryFee.toFixed(2)}

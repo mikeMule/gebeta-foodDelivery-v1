@@ -298,9 +298,9 @@ const Home = () => {
                                   <div className="text-xs text-[#8B572A]">
                                     {typeof restaurant.categories === "string"
                                       ? restaurant.categories
-                                      : Array.isArray(restaurant.categories)
+                                      : Array.isArray(restaurant.categories) && restaurant.categories.length > 0
                                         ? restaurant.categories.join(", ")
-                                        : ""}
+                                        : "Various cuisines"}
                                   </div>
                                 </div>
                               </div>
