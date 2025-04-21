@@ -79,19 +79,58 @@ const RestaurantDetail = () => {
             </div>
           </div>
           
-          <p className="text-neutral-600 mb-4">{restaurant?.categories}</p>
+          <p className="text-neutral-600 mb-2">{restaurant?.categories}</p>
+          
+          {/* Opening status banner */}
+          {restaurant?.openingHours && restaurant?.closingHours && (
+            <div className={`mb-3 text-sm rounded-lg p-2 ${
+              new Date().getHours() >= parseInt(restaurant.openingHours.split(':')[0]) && 
+              new Date().getHours() < parseInt(restaurant.closingHours.split(':')[0])
+                ? "bg-green-50 text-green-700" 
+                : "bg-red-50 text-red-700"
+            }`}>
+              <div className="flex items-center">
+                <Icons.clock className="mr-2 h-4 w-4" />
+                <div>
+                  <span className="font-medium">
+                    {new Date().getHours() >= parseInt(restaurant.openingHours.split(':')[0]) && 
+                    new Date().getHours() < parseInt(restaurant.closingHours.split(':')[0])
+                      ? "Open Now" 
+                      : "Closed"}
+                  </span>
+                  <span className="ml-1">· Hours: {restaurant.openingHours} - {restaurant.closingHours}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Contact information */}
+          <div className="border-t border-b border-neutral-100 py-3 mb-4">
+            <div className="flex items-center mb-2">
+              <Icons.mapPin className="mr-2 h-4 w-4 text-[#8B572A]" />
+              <span className="text-sm text-neutral-600">
+                {restaurant?.address || "Addis Ababa, Ethiopia"}
+              </span>
+            </div>
+            <div className="flex items-center">
+              <Icons.phone className="mr-2 h-4 w-4 text-[#8B572A]" />
+              <span className="text-sm text-neutral-600">
+                {restaurant?.phone || "+251-11-111-1111"}
+              </span>
+            </div>
+          </div>
           
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex items-center text-sm text-neutral-600">
-              <Icons.mapPin className="mr-1 text-primary" />
+              <Icons.mapPin className="mr-1 text-[#8B572A]" />
               <span>{restaurant?.distance.toFixed(1)} km away</span>
             </div>
             <div className="flex items-center text-sm text-neutral-600">
-              <Icons.clock className="mr-1 text-primary" />
+              <Icons.clock className="mr-1 text-[#8B572A]" />
               <span>{restaurant?.deliveryTime}</span>
             </div>
             <div className="flex items-center text-sm text-neutral-600">
-              <Icons.bike className="mr-1 text-primary" />
+              <Icons.bike className="mr-1 text-[#8B572A]" />
               <span>
                 {restaurant?.deliveryFee === 0 
                   ? "Free delivery" 
@@ -157,9 +196,55 @@ const RestaurantDetail = () => {
             </TabsContent>
             
             <TabsContent value="info" className="pt-4">
-              <p className="text-neutral-600">
-                Restaurant information coming soon...
-              </p>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold mb-2">Opening Hours</h3>
+                  <div className="bg-neutral-50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm">Monday - Friday</span>
+                      <span className="text-sm font-medium">{restaurant?.openingHours || '09:00'} - {restaurant?.closingHours || '21:00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm">Saturday</span>
+                      <span className="text-sm font-medium">{restaurant?.openingHours || '09:00'} - {restaurant?.closingHours || '21:00'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Sunday</span>
+                      <span className="text-sm font-medium">{parseInt(restaurant?.openingHours?.split(':')[0] || '9') + 1}:00 - {restaurant?.closingHours || '21:00'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-bold mb-2">Restaurant Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <Icons.mapPin className="text-[#8B572A] mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Address</p>
+                        <p className="text-sm text-neutral-600">{restaurant?.address || 'Addis Ababa, Ethiopia'}</p>
+                        <p className="text-xs text-[#8B572A] mt-1">Lat: {restaurant?.latitude?.toFixed(6)}, Lng: {restaurant?.longitude?.toFixed(6)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <Icons.phone className="text-[#8B572A] mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Contact</p>
+                        <p className="text-sm text-neutral-600">{restaurant?.phone || '+251-11-111-1111'}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <Icons.info className="text-[#8B572A] mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">About</p>
+                        <p className="text-sm text-neutral-600">{restaurant?.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
