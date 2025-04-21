@@ -26,12 +26,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
 
+  // Helper function to calculate distance using Haversine formula
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in km
+    return distance;
+  };
+
   // Restaurant routes
   app.get("/api/restaurants", async (req: Request, res: Response) => {
     try {
-      const restaurants = await storage.getAllRestaurants();
+      // Get user's location from query params or use default
+      const userLat = parseFloat(req.query.lat as string) || 9.0079232;
+      const userLng = parseFloat(req.query.lng as string) || 38.7678208;
+      
+      let restaurants = await storage.getAllRestaurants();
+      
+      // Calculate distance for each restaurant using actual user location
+      restaurants = restaurants.map(restaurant => {
+        const distance = calculateDistance(
+          userLat, 
+          userLng, 
+          restaurant.latitude, 
+          restaurant.longitude
+        );
+        
+        return {
+          ...restaurant,
+          distance
+        };
+      });
+      
+      // Sort restaurants by distance
+      restaurants.sort((a, b) => a.distance - b.distance);
+      
       res.json(restaurants);
     } catch (error) {
+      console.error("Error fetching restaurants:", error);
       res.status(500).json({ message: "Failed to fetch restaurants" });
     }
   });

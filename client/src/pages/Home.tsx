@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { type Restaurant } from "@shared/schema";
 import { Icons } from "@/lib/icons";
 import { containerVariants, itemVariants } from "@/lib/animation";
+import { Navigation, MapPin } from "lucide-react";
 
 const Home = () => {
   const [, setLocation] = useLocation();
@@ -20,9 +21,17 @@ const Home = () => {
     lng: 38.7578, 
     name: userData?.location || "Bole, Addis Ababa"
   });
+  const [showLocationBanner, setShowLocationBanner] = useState<boolean>(true);
   
-  const { data: restaurants, isLoading } = useQuery<Restaurant[]>({
-    queryKey: ['/api/restaurants'],
+  const { data: restaurants, isLoading, refetch: refetchRestaurants } = useQuery<Restaurant[]>({
+    queryKey: ['/api/restaurants', userLocation.lat, userLocation.lng],
+    queryFn: async () => {
+      const response = await fetch(`/api/restaurants?lat=${userLocation.lat}&lng=${userLocation.lng}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurants');
+      }
+      return response.json();
+    },
   });
 
   const { data: categories } = useQuery<string[]>({
@@ -43,8 +52,48 @@ const Home = () => {
         restaurant.categories.includes(selectedCategory)
       );
 
+  const requestLocationPermission = () => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          name: "Detecting..."
+        };
+        handleUserLocationChange(newLocation);
+        setShowLocationBanner(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        alert("Please allow location access to improve delivery accuracy");
+      }
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col pb-16 bg-[#FFF9F2]">
+      {showLocationBanner && (
+        <div className="bg-[#8B572A] text-white px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-2" />
+            <span className="text-sm">Allow location access for accurate delivery</span>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              className="text-xs bg-white text-[#8B572A] px-2 py-1 rounded-full"
+              onClick={requestLocationPermission}
+            >
+              Allow
+            </button>
+            <button 
+              className="text-xs border border-white/30 px-2 py-1 rounded-full"
+              onClick={() => setShowLocationBanner(false)}
+            >
+              Later
+            </button>
+          </div>
+        </div>
+      )}
       <header className="bg-white sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
@@ -65,7 +114,31 @@ const Home = () => {
               <p className="text-xs text-[#8B572A]">Delivering to</p>
               <div className="flex items-center">
                 <span className="font-medium text-[#4F2D1F] text-sm">{userLocation.name}</span>
-                <Icons.chevronDown className="ml-1 text-[#8B572A] w-4 h-4" />
+                <button
+                  onClick={() => {
+                    const detectLocationFn = () => {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          const newLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            name: "Detecting..."
+                          };
+                          handleUserLocationChange(newLocation);
+                        },
+                        (error) => {
+                          console.error("Error getting location:", error);
+                          alert("Please allow location access to improve delivery accuracy");
+                        }
+                      );
+                    };
+                    detectLocationFn();
+                  }}
+                  className="ml-1 flex items-center text-[#8B572A] text-xs bg-[#E5A764]/10 px-1.5 py-0.5 rounded-full"
+                >
+                  <Navigation className="w-3 h-3 mr-1" />
+                  <span>Sync</span>
+                </button>
               </div>
             </div>
             <Button variant="ghost" className="w-9 h-9 p-0 rounded-full bg-[#E5A764]/10 text-[#8B572A]">
