@@ -142,24 +142,24 @@ const NavBar = () => {
         
         <Button 
           variant="ghost"
-          className={`flex flex-col items-center w-1/4 relative ${isActive('/search') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-          onClick={() => handleNavigation('/search')}
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/profile') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/profile')}
         >
           <motion.div
             variants={iconVariants}
-            animate={isActive('/search') ? 'active' : 'inactive'}
+            animate={isActive('/profile') ? 'active' : 'inactive'}
           >
-            <Icons.search />
+            <Icons.user />
           </motion.div>
           <motion.span 
             className="text-xs mt-1 font-medium"
             variants={tabVariants}
-            animate={isActive('/search') ? 'active' : 'inactive'}
+            animate={isActive('/profile') ? 'active' : 'inactive'}
           >
-            Search
+            Profile
           </motion.span>
           
-          {isActive('/search') && (
+          {isActive('/profile') && (
             <motion.div
               className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
               variants={tabIndicatorVariants}
@@ -172,24 +172,24 @@ const NavBar = () => {
         
         <Button 
           variant="ghost"
-          className={`flex flex-col items-center w-1/4 relative ${isActive('/favorites') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
-          onClick={() => handleNavigation('/favorites')}
+          className={`flex flex-col items-center w-1/4 relative ${isActive('/my-orders') ? 'text-[#8B572A]' : 'text-[#8B572A]/50'} hover:bg-[#E5A764]/10 hover:text-[#8B572A]`}
+          onClick={() => handleNavigation('/my-orders')}
         >
           <motion.div
             variants={iconVariants}
-            animate={isActive('/favorites') ? 'active' : 'inactive'}
+            animate={isActive('/my-orders') ? 'active' : 'inactive'}
           >
-            <Icons.heart />
+            <Icons.package />
           </motion.div>
           <motion.span 
             className="text-xs mt-1 font-medium"
             variants={tabVariants}
-            animate={isActive('/favorites') ? 'active' : 'inactive'}
+            animate={isActive('/my-orders') ? 'active' : 'inactive'}
           >
-            Favorites
+            Orders
           </motion.span>
           
-          {isActive('/favorites') && (
+          {isActive('/my-orders') && (
             <motion.div
               className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#8B572A] rounded-full"
               variants={tabIndicatorVariants}

@@ -13,6 +13,8 @@ import RestaurantDetail from "@/pages/RestaurantDetail";
 import Cart from "@/pages/Cart";
 import OrderSuccess from "@/pages/OrderSuccess";
 import OrderTracking from "@/pages/OrderTracking";
+import Profile from "@/pages/Profile";
+import MyOrders from "@/pages/MyOrders";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
@@ -65,6 +67,8 @@ function App() {
                     <Route path="/cart" component={Cart} />
                     <Route path="/order-success" component={OrderSuccess} />
                     <Route path="/order-tracking" component={OrderTracking} />
+                    <Route path="/profile" component={Profile} />
+                    <Route path="/my-orders" component={MyOrders} />
                     {/* Fallback to login */}
                     <Route path="/">
                       {() => {
