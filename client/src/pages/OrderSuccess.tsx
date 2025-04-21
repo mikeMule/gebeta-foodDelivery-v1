@@ -80,15 +80,20 @@ const OrderSuccess = () => {
       }
     }, 7000); // Move to next step every 7 seconds (faster for demo)
     
-    // Automatically transition to the full order tracking page after all steps
-    const autoRedirectTimer = setTimeout(() => {
-      if (currentStep >= orderSteps.length) {
-        handleTrackOrder();
-      }
-    }, 10000);
-    
     return () => {
       clearTimeout(stepTimer);
+    };
+  }, [currentStep, showContent]);
+  
+  // Handle auto-redirect to tracking page once all steps are complete
+  useEffect(() => {
+    if (!showContent || currentStep < orderSteps.length) return;
+    
+    const autoRedirectTimer = setTimeout(() => {
+      handleTrackOrder();
+    }, 5000);
+    
+    return () => {
       clearTimeout(autoRedirectTimer);
     };
   }, [currentStep, showContent, handleTrackOrder]);
