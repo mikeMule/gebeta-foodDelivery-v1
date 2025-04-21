@@ -22,7 +22,11 @@ import {
   MessageCircle,
   Menu,
   X,
-  Info
+  Info,
+  Truck,
+  Package,
+  Circle,
+  Utensils
 } from "lucide-react";
 
 // Also add some custom icons that aren't in Lucide
@@ -104,6 +108,10 @@ export const Icons = {
   telegram: Telegram,
   instagram: Instagram,
   info: Info,
+  truck: Truck,
+  package: Package,
+  circle: Circle,
+  chefHat: Utensils,
   scan: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M3 7V5a2 2 0 0 1 2-2h2" />

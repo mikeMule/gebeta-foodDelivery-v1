@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/lib/icons';
 import { useCart } from '@/store/CartContext';
+
+// Order status timeline steps
+const orderSteps = [
+  { id: 1, name: 'Order Confirmed', description: 'Your order has been received', icon: 'check', time: 'Just now', completed: true },
+  { id: 2, name: 'Preparing Food', description: 'The restaurant is preparing your order', icon: 'utensils', time: '5 mins', completed: false },
+  { id: 3, name: 'On The Way', description: 'Your order is on the way', icon: 'truck', time: '15 mins', completed: false },
+  { id: 4, name: 'Delivered', description: 'Enjoy your meal!', icon: 'package', time: '25-30 mins', completed: false }
+];
 
 const OrderSuccess = () => {
   const [, setLocation] = useLocation();
@@ -16,6 +24,7 @@ const OrderSuccess = () => {
   const [showConfetti, setShowConfetti] = useState(true);
   const [showContent, setShowContent] = useState(false);
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
+  const [currentStep, setCurrentStep] = useState(1);
 
   // Update window dimensions when window resizes
   useEffect(() => {
@@ -30,8 +39,9 @@ const OrderSuccess = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Clear cart when arriving on this page
+  // Handle cart clearing and confetti
   useEffect(() => {
+    // Clear cart when arriving on this page
     clearCart();
     
     // Show content after a slight delay for animation purposes
@@ -49,13 +59,38 @@ const OrderSuccess = () => {
       clearTimeout(confettiTimer);
     };
   }, [clearCart]);
+  
+  // Advance the order steps simulation
+  useEffect(() => {
+    // Only start advancing steps after showing content
+    if (!showContent) return;
+    
+    const stepTimer = setTimeout(() => {
+      if (currentStep < orderSteps.length) {
+        setCurrentStep(prev => Math.min(prev + 1, orderSteps.length));
+      }
+    }, 15000); // Move to next step every 15 seconds
+    
+    return () => clearTimeout(stepTimer);
+  }, [currentStep, showContent]);
 
-  const handleTrackOrder = () => {
+  const handleTrackOrder = useCallback(() => {
     setLocation('/order-tracking');
-  };
+  }, [setLocation]);
 
-  const handleReturnHome = () => {
+  const handleReturnHome = useCallback(() => {
     setLocation('/');
+  }, [setLocation]);
+
+  // Helper to get the appropriate icon for the step
+  const getStepIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'check': return <Icons.check className="w-5 h-5" />;
+      case 'utensils': return <Icons.chefHat className="w-5 h-5" />;
+      case 'truck': return <Icons.truck className="w-5 h-5" />;
+      case 'package': return <Icons.package className="w-5 h-5" />;
+      default: return <Icons.circle className="w-5 h-5" />;
+    }
   };
 
   return (
@@ -101,6 +136,48 @@ const OrderSuccess = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
+            {/* Order Status Timeline */}
+            <div className="mb-6">
+              <h3 className="font-bold text-[#4F2D1F] mb-4 text-left">Order Status</h3>
+              <div className="space-y-0">
+                {orderSteps.map((step, index) => {
+                  const isStepCompleted = step.id <= currentStep;
+                  return (
+                    <div key={step.id} className="relative">
+                      {/* Connecting line */}
+                      {index < orderSteps.length - 1 && (
+                        <div 
+                          className={`absolute left-[15px] top-[30px] w-[2px] h-[calc(100%-15px)] ${
+                            isStepCompleted && orderSteps[index + 1].id <= currentStep 
+                              ? 'bg-[#8B572A]' 
+                              : 'bg-gray-200'
+                          } transition-colors duration-500`}
+                        />
+                      )}
+                      
+                      <div className="flex items-start py-2">
+                        <div className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full ${
+                          isStepCompleted ? 'bg-[#8B572A]' : 'bg-gray-200'
+                        } flex items-center justify-center text-white transition-colors duration-500`}>
+                          {getStepIcon(step.icon)}
+                        </div>
+                        
+                        <div className="ml-4 flex-grow">
+                          <div className="flex justify-between items-center">
+                            <h4 className={`font-medium ${isStepCompleted ? 'text-[#4F2D1F]' : 'text-gray-500'}`}>
+                              {step.name}
+                            </h4>
+                            <span className="text-xs text-[#8B572A]">{step.time}</span>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5A764]/20">
               <div className="text-left">
                 <p className="text-sm text-[#8B572A]">Estimated Delivery Time</p>
