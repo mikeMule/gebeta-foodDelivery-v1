@@ -20,14 +20,20 @@ function App() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Show splash screen for 2 seconds then redirect to login
+    // Show splash screen for 3 seconds then redirect to login
+    // Increased to allow more time to appreciate the animations
     const timer = setTimeout(() => {
       setShowSplash(false);
       setLocation("/login");
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, [setLocation]);
+
+  // Update the document title
+  useEffect(() => {
+    document.title = "Gebeta - Ethiopian Food Delivery";
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { Icons } from "@/lib/icons";
+import { containerVariants, itemVariants } from "@/lib/animation";
 
 const OtpVerification = () => {
   const [otp, setOtp] = useState(["1", "2", "3", "4"]);
@@ -48,7 +50,7 @@ const OtpVerification = () => {
 
   return (
     <motion.div 
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col bg-[#FFF9F2]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -56,52 +58,81 @@ const OtpVerification = () => {
       <div className="px-4 py-6">
         <Button 
           variant="ghost" 
-          className="flex items-center text-neutral-800 p-0"
+          className="flex items-center text-[#4F2D1F] p-0 hover:bg-[#E5A764]/10"
           onClick={handleBackToLogin}
         >
-          <i className="ri-arrow-left-line mr-2"></i>
+          <Icons.chevronLeft className="mr-1" />
           <span>Back</span>
         </Button>
       </div>
       
       <div className="flex-grow flex flex-col items-center justify-center px-6 pb-12">
         <motion.div 
-          className="w-full max-w-md text-center"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          className="w-full max-w-md"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
         >
-          <h1 className="text-2xl font-bold text-neutral-800 mb-2 font-dm-sans">Verify your phone</h1>
-          <p className="text-neutral-600 mb-8">
-            We've sent a code to <br />
-            <span className="font-medium">{userData?.phoneNumber}</span>
-          </p>
-          
-          <div className="flex justify-center gap-2 mb-8">
-            {otp.map((digit, index) => (
-              <Input
-                key={index}
-                type="text"
-                maxLength={1}
-                className="w-[50px] h-[60px] text-center text-xl font-bold"
-                value={digit}
-                onChange={(e) => handleChange(e, index)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                ref={inputRefs[index]}
-              />
-            ))}
-          </div>
-          
-          <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-6 mb-6"
-            onClick={handleVerify}
+          <motion.div
+            variants={itemVariants}
+            className="text-center mb-8"
           >
-            Verify and Continue
-          </Button>
+            <div className="inline-block bg-[#8B572A] rounded-full p-4 mb-4 shadow-lg">
+              <Icons.phone className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#4F2D1F] mb-2 font-dm-sans">Verify your phone</h1>
+            <p className="text-[#8B572A] mb-1">
+              We've sent a verification code to
+            </p>
+            <p className="font-medium text-[#4F2D1F] text-lg">
+              {userData?.phoneNumber}
+            </p>
+          </motion.div>
           
-          <p className="text-neutral-600">
-            Didn't receive code? <a href="#" className="text-primary">Resend</a>
-          </p>
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-xl shadow-md p-8 mb-6 border border-[#E5A764]/30"
+          >
+            <div className="flex justify-center gap-3 mb-8">
+              {otp.map((digit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 * index }}
+                >
+                  <Input
+                    type="text"
+                    maxLength={1}
+                    className="w-[60px] h-[70px] text-center text-2xl font-bold border-[#E5A764]/50 focus:border-[#8B572A] focus:ring-[#8B572A]"
+                    value={digit}
+                    onChange={(e) => handleChange(e, index)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    ref={inputRefs[index]}
+                  />
+                </motion.div>
+              ))}
+            </div>
+            
+            <Button 
+              className="w-full bg-[#8B572A] hover:bg-[#4F2D1F] text-white font-medium py-6 transition-colors"
+              onClick={handleVerify}
+            >
+              Verify and Continue
+            </Button>
+          </motion.div>
+          
+          <motion.div
+            variants={itemVariants}
+            className="text-center"
+          >
+            <p className="text-[#8B572A]">
+              Didn't receive code? <a href="#" className="text-[#C73030] font-medium">Resend</a>
+            </p>
+            <p className="text-[#8B572A]/70 mt-2 text-sm">
+              For testing, use code: 1234
+            </p>
+          </motion.div>
         </motion.div>
       </div>
     </motion.div>
