@@ -25,7 +25,7 @@ import NavBar from "@/components/NavBar";
 function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [location, setLocation] = useLocation();
-
+  
   useEffect(() => {
     // Show splash screen for 3 seconds then redirect to appropriate page
     // Increased to allow more time to appreciate the animations
@@ -36,8 +36,11 @@ function App() {
       if (location.startsWith('/admin')) {
         // Don't redirect, stay on the current admin page
       } else {
-        // For regular app flow, go to login
-        setLocation("/login");
+        // For regular app flow, redirect is now handled by RedirectHandler
+        if (location === "/") {
+          // Only set location if we're at the root
+          setLocation("/splash-redirect");
+        }
       }
     }, 3000);
 
@@ -86,7 +89,8 @@ function App() {
                     <Route path="/admin/dashboard" component={AdminDashboard} />
                     <Route path="/admin/restaurant/:id" component={AdminRestaurantForm} />
                     
-                    {/* Fallback to appropriate page */}
+                    {/* Special routes for handling redirects */}
+                    <Route path="/splash-redirect" component={RedirectHandler} />
                     <Route path="/" component={RedirectHandler} />
                     <Route component={NotFound} />
                   </Switch>
@@ -107,11 +111,11 @@ function RedirectHandler() {
   const [location, setLocation] = useLocation();
   
   useEffect(() => {
-    console.log("RedirectHandler - Auth status:", isAuthenticated);
+    console.log("RedirectHandler - Auth status:", isAuthenticated, "at location:", location);
     
-    // If the URL has '/admin', don't redirect
-    if (location.startsWith('/admin')) {
-      console.log("On admin route, not redirecting");
+    // Don't redirect if already on home, login, or admin pages
+    if (location === "/home" || location === "/login" || location.startsWith('/admin')) {
+      console.log("Already on a valid route, no need to redirect");
       return;
     }
     

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,15 @@ import { containerVariants, itemVariants } from "@/lib/animation";
 const OtpVerification = () => {
   const [otp, setOtp] = useState(["1", "2", "3", "4"]);
   const [, setLocation] = useLocation();
-  const { userData, verifyOtp } = useAuth();
+  const { userData, verifyOtp, isAuthenticated } = useAuth();
+  
+  // If user is already authenticated, redirect to home
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("Already authenticated on OTP page, redirecting to home");
+      setLocation("/home");
+    }
+  }, [isAuthenticated, setLocation]);
   const inputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),

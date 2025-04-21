@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,15 @@ import { containerVariants, itemVariants } from "@/lib/animation";
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("0916182957");
   const [, setLocation] = useLocation();
-  const { login, verifyOtp } = useAuth();
+  const { login, verifyOtp, isAuthenticated } = useAuth();
+
+  // If user is already authenticated, redirect to home
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("Already authenticated, redirecting to home");
+      setLocation("/home");
+    }
+  }, [isAuthenticated, setLocation]);
 
   const handleLogin = () => {
     // Mock login - store phone number and navigate to OTP screen

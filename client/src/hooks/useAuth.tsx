@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Only log out if the user explicitly requested it
     setIsAuthenticated(false);
     setUserData(null);
     localStorage.removeItem('isAuthenticated');
