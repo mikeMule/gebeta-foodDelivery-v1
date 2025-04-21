@@ -236,7 +236,7 @@ const RestaurantDetail = () => {
                     </div>
                     
                     <div className="flex items-start">
-                      <Icons.info className="text-[#8B572A] mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <Icons.store className="text-[#8B572A] mr-2 mt-0.5 h-4 w-4 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium">About</p>
                         <p className="text-sm text-neutral-600">{restaurant?.description}</p>

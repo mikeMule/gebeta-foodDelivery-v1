@@ -21,7 +21,8 @@ import {
   Map,
   MessageCircle,
   Menu,
-  X
+  X,
+  Info
 } from "lucide-react";
 
 // Also add some custom icons that aren't in Lucide
@@ -102,4 +103,5 @@ export const Icons = {
   close: X,
   telegram: Telegram,
   instagram: Instagram,
+  info: Info,
 };
