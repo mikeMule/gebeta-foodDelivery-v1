@@ -149,7 +149,7 @@ const OrderTracking = () => {
           className="absolute right-4 bottom-4 rounded-full h-12 w-12 bg-[#8B572A] hover:bg-[#4F2D1F] shadow-lg z-10"
           onClick={() => setShowVoiceAssistant(true)}
         >
-          <Mic className="h-5 w-5 text-white" />
+          <Icons.message className="h-5 w-5 text-white" />
         </Button>
       </div>
 
