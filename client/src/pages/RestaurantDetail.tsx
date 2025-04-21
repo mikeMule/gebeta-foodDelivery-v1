@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FoodItem from "@/components/FoodItem";
 import NavBar from "@/components/NavBar";
+import DeliveryMap from "@/components/DeliveryMap";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
 import { type Restaurant, type FoodItem as FoodItemType } from "@shared/schema";
@@ -25,7 +26,7 @@ const RestaurantDetail = () => {
   });
 
   const categories = foodItems 
-    ? [...new Set(foodItems.map(item => item.category))]
+    ? Array.from(new Set(foodItems.map(item => item.category)))
     : [];
 
   const handleBackClick = () => {
@@ -98,6 +99,20 @@ const RestaurantDetail = () => {
               </span>
             </div>
           </div>
+          
+          {restaurant && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-2">Location & Delivery</h3>
+              <DeliveryMap 
+                height="140px"
+                restaurantLocation={{ 
+                  lat: restaurant.latitude, 
+                  lng: restaurant.longitude,
+                  name: restaurant.name 
+                }}
+              />
+            </div>
+          )}
           
           <Tabs defaultValue="menu" className="mb-4">
             <TabsList className="border-b border-neutral-200 w-full justify-start space-x-6 bg-transparent p-0">

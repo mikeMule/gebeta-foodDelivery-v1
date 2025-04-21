@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import RestaurantCard from "@/components/RestaurantCard";
 import NavBar from "@/components/NavBar";
+import DeliveryMap from "@/components/DeliveryMap";
 import { Button } from "@/components/ui/button";
 import { type Restaurant } from "@shared/schema";
 import { Icons } from "@/lib/icons";

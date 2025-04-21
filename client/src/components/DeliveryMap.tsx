@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GoogleMap, LoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
+import { MapPin, Navigation, MapIcon } from 'lucide-react';
 
 // Predefined locations in Addis Ababa
 const LOCATIONS = {
@@ -17,22 +17,15 @@ interface DeliveryMapProps {
   height?: string;
 }
 
-const containerStyle = {
-  width: '100%',
-  borderRadius: '8px',
-  overflow: 'hidden'
-};
-
 const DeliveryMap = ({ 
   restaurantLocation, 
   onUserLocationChange,
-  height = '250px' 
+  height = '180px' 
 }: DeliveryMapProps) => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; name: string }>(LOCATIONS.default);
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationName, setLocationName] = useState<string>(LOCATIONS.default.name);
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+  const [distance, setDistance] = useState<number>(0);
 
   // Function to detect user's location
   const detectLocation = useCallback(() => {
@@ -53,6 +46,17 @@ const DeliveryMap = ({
             onUserLocationChange(closestLocation);
           }
           
+          // Calculate distance if restaurant location is provided
+          if (restaurantLocation) {
+            const dist = calculateDistance(
+              closestLocation.lat, 
+              closestLocation.lng, 
+              restaurantLocation.lat, 
+              restaurantLocation.lng
+            );
+            setDistance(dist);
+          }
+          
           setIsLoading(false);
         },
         (error) => {
@@ -60,6 +64,18 @@ const DeliveryMap = ({
           // Default to Bole if location cannot be determined
           setUserLocation(LOCATIONS.default);
           setLocationName(LOCATIONS.default.name);
+          
+          // Calculate distance if restaurant location is provided
+          if (restaurantLocation) {
+            const dist = calculateDistance(
+              LOCATIONS.default.lat, 
+              LOCATIONS.default.lng, 
+              restaurantLocation.lat, 
+              restaurantLocation.lng
+            );
+            setDistance(dist);
+          }
+          
           setIsLoading(false);
         },
         { enableHighAccuracy: true }
@@ -68,9 +84,21 @@ const DeliveryMap = ({
       console.error("Geolocation is not supported by this browser.");
       setUserLocation(LOCATIONS.default);
       setLocationName(LOCATIONS.default.name);
+      
+      // Calculate distance if restaurant location is provided
+      if (restaurantLocation) {
+        const dist = calculateDistance(
+          LOCATIONS.default.lat, 
+          LOCATIONS.default.lng, 
+          restaurantLocation.lat, 
+          restaurantLocation.lng
+        );
+        setDistance(dist);
+      }
+      
       setIsLoading(false);
     }
-  }, [onUserLocationChange]);
+  }, [onUserLocationChange, restaurantLocation]);
 
   // Find the closest predefined location based on latitude and longitude
   const findClosestLocation = (lat: number, lng: number) => {
@@ -106,107 +134,51 @@ const DeliveryMap = ({
     return deg * (Math.PI / 180);
   };
 
-  // Get directions from restaurant to user's location
-  const getDirections = useCallback(() => {
-    if (!restaurantLocation || !mapLoaded) return;
-    
-    const directionsService = new google.maps.DirectionsService();
-    
-    directionsService.route(
-      {
-        origin: new google.maps.LatLng(restaurantLocation.lat, restaurantLocation.lng),
-        destination: new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        travelMode: google.maps.TravelMode.DRIVING
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          setDirections(result);
-        } else {
-          console.error(`Directions request failed: ${status}`);
-        }
-      }
-    );
-  }, [userLocation, restaurantLocation, mapLoaded]);
-
   useEffect(() => {
     detectLocation();
   }, [detectLocation]);
 
-  useEffect(() => {
-    if (restaurantLocation && userLocation && mapLoaded) {
-      getDirections();
-    }
-  }, [restaurantLocation, userLocation, getDirections, mapLoaded]);
-
-  const handleMapLoad = () => {
-    setMapLoaded(true);
-  };
-
   return (
-    <div className="relative">
-      <div style={{ height, ...containerStyle }}>
-        <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''} onLoad={handleMapLoad}>
-          <GoogleMap
-            mapContainerStyle={{ height: '100%', width: '100%' }}
-            center={userLocation}
-            zoom={13}
-          >
-            {/* User location marker */}
-            <Marker
-              position={userLocation}
-              icon={{
-                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                scaledSize: new google.maps.Size(40, 40)
-              }}
-              title="Your Location"
-            />
-            
-            {/* Restaurant location marker (if provided) */}
-            {restaurantLocation && (
-              <Marker
-                position={restaurantLocation}
-                icon={{
-                  url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                  scaledSize: new google.maps.Size(40, 40)
-                }}
-                title="Restaurant Location"
-              />
-            )}
-            
-            {/* Show directions if available */}
-            {directions && (
-              <DirectionsRenderer
-                directions={directions}
-                options={{
-                  suppressMarkers: true,
-                  polylineOptions: {
-                    strokeColor: '#8B572A',
-                    strokeWeight: 5
-                  }
-                }}
-              />
-            )}
-          </GoogleMap>
-        </LoadScript>
+    <div className="relative rounded-lg overflow-hidden bg-neutral-100" style={{ height }}>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/20 z-10"></div>
+      
+      <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-0">
+        <MapIcon className="w-48 h-48 text-primary/10" />
       </div>
       
       {isLoading ? (
-        <div className="absolute inset-0 bg-black/5 flex items-center justify-center">
+        <div className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-20">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <p className="mt-2 text-sm text-neutral-600">Detecting your location...</p>
           </div>
         </div>
       ) : (
-        <div className="absolute bottom-3 left-3 bg-white px-3 py-2 rounded-lg shadow-md text-sm flex items-center">
-          <div className="h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
-          <span>Delivering to: <strong>{locationName}</strong></span>
-          <button 
-            className="ml-2 text-primary text-xs underline"
-            onClick={detectLocation}
-          >
-            Refresh
-          </button>
+        <div className="absolute inset-x-0 bottom-0 p-4 z-20">
+          <div className="bg-white rounded-lg shadow-md p-3">
+            <div className="flex items-center mb-2">
+              <MapPin className="h-5 w-5 text-primary mr-2" />
+              <div className="font-medium">Your Location: <span className="text-primary">{locationName}</span></div>
+            </div>
+            
+            {restaurantLocation && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center">
+                  <Navigation className="h-4 w-4 text-neutral-500 mr-1" />
+                  <span>Distance to {restaurantLocation.name}</span>
+                </div>
+                <span className="font-medium">{distance.toFixed(1)} km</span>
+              </div>
+            )}
+            
+            <button 
+              className="mt-2 text-primary text-xs flex items-center justify-center w-full"
+              onClick={detectLocation}
+            >
+              <Navigation className="h-3 w-3 mr-1" />
+              <span>Refresh location</span>
+            </button>
+          </div>
         </div>
       )}
     </div>
