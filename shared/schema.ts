@@ -31,7 +31,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 // Restaurant table
 export const restaurants = pgTable("restaurants", {
   id: serial("id").primaryKey(),
-  ownerId: integer("owner_id").notNull(), // references user_id of restaurant_owner type
   name: text("name").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url").notNull(),
@@ -46,14 +45,9 @@ export const restaurants = pgTable("restaurants", {
   closingHours: text("closing_hours").notNull().default("21:00"),
   phone: text("phone").notNull().default("+251-11-111-1111"),
   address: text("address").notNull().default("Addis Ababa, Ethiopia"),
-  commissionRate: doublePrecision("commission_rate").notNull().default(15.0), // percentage
-  featured: boolean("featured").default(false), // for premium listings
-  active: boolean("active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
-  ownerId: true,
   name: true,
   description: true,
   imageUrl: true,
@@ -68,9 +62,6 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   closingHours: true,
   phone: true,
   address: true,
-  commissionRate: true,
-  featured: true,
-  active: true,
 });
 
 // Food item table

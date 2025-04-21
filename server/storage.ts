@@ -106,13 +106,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createRestaurant(insertRestaurant: InsertRestaurant): Promise<Restaurant> {
-    // For backward compatibility with old code that doesn't provide ownerId
-    const defaultOwner = insertRestaurant.ownerId ?? 1;
-    const result = await db.insert(restaurants).values({
-      ...insertRestaurant,
-      ownerId: defaultOwner,
-      createdAt: new Date()
-    }).returning();
+    const result = await db.insert(restaurants).values(insertRestaurant).returning();
     return result[0];
   }
   
