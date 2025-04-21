@@ -1,4 +1,5 @@
 import { Icons } from "@/lib/icons";
+import { motion } from "framer-motion";
 
 interface Step {
   id: number;
@@ -14,22 +15,40 @@ interface DeliveryStatusProps {
 
 const DeliveryStatus = ({ step, isLast }: DeliveryStatusProps) => {
   return (
-    <div className="relative pl-8 pb-1">
+    <motion.div 
+      className="relative pl-10 pb-1"
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       {!isLast && (
-        <div className={`absolute top-0 bottom-0 left-3 w-0.5 ${step.completed ? 'bg-primary' : 'bg-neutral-300'}`}></div>
+        <div className={`absolute top-0 bottom-0 left-4 w-0.5 ${
+          step.completed ? 'bg-[#8B572A]' : 'bg-[#E5A764]/30'
+        }`}></div>
       )}
-      <div className={`absolute top-0 left-0 w-6 h-6 rounded-full ${step.completed ? 'bg-primary' : 'bg-neutral-200'} flex items-center justify-center`}>
+      
+      <motion.div 
+        className={`absolute top-0 left-0 w-8 h-8 rounded-full ${
+          step.completed ? 'bg-[#8B572A]' : 'bg-[#E5A764]/30'
+        } flex items-center justify-center shadow-sm`}
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 15 }}
+      >
         {step.completed ? (
-          <Icons.check className="text-white text-sm" />
+          <Icons.check className="text-white" />
         ) : (
-          <Icons.flag className="text-neutral-400 text-sm" />
+          <Icons.flag className="text-[#8B572A]" />
         )}
-      </div>
+      </motion.div>
+      
       <div className="py-2">
-        <h3 className={`font-medium ${!step.completed ? 'text-neutral-400' : ''}`}>{step.name}</h3>
-        <p className="text-xs text-neutral-500">{step.time}</p>
+        <h3 className={`font-medium ${
+          !step.completed ? 'text-[#8B572A]/50' : 'text-[#4F2D1F]'
+        }`}>{step.name}</h3>
+        <p className="text-xs text-[#8B572A]/70">{step.time}</p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
