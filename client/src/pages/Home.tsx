@@ -58,7 +58,7 @@ const Home = () => {
   useEffect(() => {
     if (restaurants && restaurants.length > 0) {
       const fetchFoodItems = async () => {
-        const allFoodItems: FoodItem[] = [];
+        const allFoodItems: FoodItemWithRestaurant[] = [];
         
         for (const restaurant of restaurants) {
           try {
@@ -213,45 +213,103 @@ const Home = () => {
               className="w-full bg-[#E5A764]/10 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[#8B572A]"
             />
             
-            {/* Search results dropdown for food items */}
+            {/* Search results dropdown for food items and restaurants */}
             {showFoodItemsInSearch && searchQuery.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg z-50 max-h-[300px] overflow-y-auto">
                 <div className="p-2">
-                  <div className="text-xs font-medium text-[#8B572A] mb-1 px-2">
-                    {foodItems.filter(item => 
-                      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).length > 0 ? 'Dishes' : 'No dishes found'}
-                  </div>
-                  
-                  {/* Food items matching search */}
-                  {foodItems
-                    .filter(item => 
-                      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .slice(0, 5) // Show top 5 results
-                    .map((item, index) => (
-                      <div 
-                        key={`food-${item.id}`}
-                        className="flex items-center p-2 hover:bg-[#FFF9F2] rounded-lg cursor-pointer"
-                        onClick={() => {
-                          // Navigate to restaurant with this food item
-                          if (item.restaurantId) {
-                            handleRestaurantClick(item.restaurantId);
-                          }
-                        }}
-                      >
-                        <div className="w-10 h-10 bg-[#E5A764]/20 rounded-full flex items-center justify-center mr-3">
-                          <Search className="w-4 h-4 text-[#8B572A]" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm text-[#4F2D1F]">{item.name}</div>
-                          <div className="text-xs text-[#8B572A]">
-                            {item.restaurantName ? `at ${item.restaurantName}` : ''} • ${item.price.toFixed(2)}
-                          </div>
-                        </div>
+                  {/* Restaurant search results */}
+                  {restaurants?.filter(restaurant => 
+                    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 && (
+                    <>
+                      <div className="text-xs font-medium text-[#8B572A] mb-1 px-2">
+                        Restaurants
                       </div>
-                    ))
-                  }
+                      
+                      {restaurants
+                        .filter(restaurant => 
+                          restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .slice(0, 3) // Show top 3 results
+                        .map((restaurant, index) => (
+                          <div 
+                            key={`restaurant-${restaurant.id}`}
+                            className="flex items-center p-2 hover:bg-[#FFF9F2] rounded-lg cursor-pointer"
+                            onClick={() => handleRestaurantClick(restaurant.id)}
+                          >
+                            <div className="w-10 h-10 bg-[#E5A764]/20 rounded-full flex items-center justify-center mr-3">
+                              <Icons.store className="w-4 h-4 text-[#8B572A]" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-[#4F2D1F]">{restaurant.name}</div>
+                              <div className="text-xs text-[#8B572A]">
+                                {restaurant.categories.join(', ')}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      }
+                      
+                      {foodItems.filter(item => 
+                        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).length > 0 && <div className="border-t border-[#E5A764]/20 my-2"></div>}
+                    </>
+                  )}
+                
+                  {/* Food items search results */}
+                  {foodItems.filter(item => 
+                    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 && (
+                    <>
+                      <div className="text-xs font-medium text-[#8B572A] mb-1 px-2">
+                        Dishes
+                      </div>
+                      
+                      {foodItems
+                        .filter(item => 
+                          item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .slice(0, 5) // Show top 5 results
+                        .map((item, index) => (
+                          <div 
+                            key={`food-${item.id}`}
+                            className="flex items-center p-2 hover:bg-[#FFF9F2] rounded-lg cursor-pointer"
+                            onClick={() => {
+                              // Navigate to restaurant with this food item
+                              if (item.restaurantId) {
+                                handleRestaurantClick(item.restaurantId);
+                              }
+                            }}
+                          >
+                            <div className="w-10 h-10 bg-[#E5A764]/20 rounded-full flex items-center justify-center mr-3">
+                              <Search className="w-4 h-4 text-[#8B572A]" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-[#4F2D1F]">{item.name}</div>
+                              <div className="text-xs text-[#8B572A]">
+                                {item.restaurantName ? `at ${item.restaurantName}` : ''} • ${item.price.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </>
+                  )}
+                  
+                  {/* No results message */}
+                  {foodItems.filter(item => 
+                    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length === 0 && 
+                  restaurants?.filter(restaurant => 
+                    restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    restaurant.description.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div className="px-2 py-3 text-center text-sm text-[#4F2D1F]">
+                      No results found for "{searchQuery}"
+                    </div>
+                  )}
                 </div>
               </div>
             )}
