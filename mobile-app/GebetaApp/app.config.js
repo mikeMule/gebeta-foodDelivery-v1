@@ -1,0 +1,56 @@
+export default {
+  name: "Gebeta Food Delivery",
+  slug: "gebeta-food-delivery",
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/icon.png",
+  userInterfaceStyle: "light",
+  splash: {
+    image: "./assets/splash.png",
+    resizeMode: "contain",
+    backgroundColor: "#FFF9F2"
+  },
+  assetBundlePatterns: [
+    "**/*"
+  ],
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: "com.gebeta.fooddelivery"
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#FFF9F2"
+    },
+    package: "com.gebeta.fooddelivery",
+    config: {
+      googleMaps: {
+        apiKey: process.env.GOOGLE_MAPS_API_KEY || "your-google-maps-api-key"
+      }
+    },
+    permissions: [
+      "ACCESS_COARSE_LOCATION",
+      "ACCESS_FINE_LOCATION",
+      "CAMERA",
+      "READ_EXTERNAL_STORAGE",
+      "WRITE_EXTERNAL_STORAGE"
+    ]
+  },
+  web: {
+    favicon: "./assets/favicon.png"
+  },
+  plugins: [
+    [
+      "expo-location",
+      {
+        locationAlwaysAndWhenInUsePermission: "Allow Gebeta to use your location to find nearby restaurants and track your delivery."
+      }
+    ]
+  ],
+  extra: {
+    eas: {
+      projectId: "gebeta-food-delivery"
+    },
+    apiBaseUrl: process.env.API_BASE_URL || "https://gebeta-food-delivery.replit.app/api"
+  }
+};
