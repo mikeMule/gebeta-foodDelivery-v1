@@ -122,9 +122,19 @@ const Cart = () => {
     setLocation(`/restaurant/${restaurantId}`);
   };
   
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+
   const handleCheckout = () => {
-    // Create a new order in the backend and navigate to success page
-    setLocation("/order-success");
+    // If Telebirr is selected, payment will be handled by the QR code component
+    // Otherwise, process other payment methods or go straight to order success
+    if (paymentMethod !== 'telebirr') {
+      setLocation("/order-success");
+    }
+  };
+  
+  const handlePaymentComplete = () => {
+    setPaymentCompleted(true);
+    // Payment was successful, we'll show tracking info in the TeleBirr component
   };
   
   // Get the selected delivery option details
@@ -425,7 +435,10 @@ const Cart = () => {
               
               {paymentMethod === 'telebirr' && (
                 <div className="mt-4 p-4 border border-[#E5A764]/30 rounded-lg bg-[#FFF9F2]">
-                  <TelebirrQRCode amount={totalWithFees} />
+                  <TelebirrQRCode 
+                    amount={totalWithFees} 
+                    onPaymentComplete={handlePaymentComplete}
+                  />
                 </div>
               )}
             </motion.div>
