@@ -140,7 +140,7 @@ export default function AdminRestaurantForm() {
         });
 
         // Navigate to the edit page of the new restaurant
-        navigate(`/admin/restaurant/${newRestaurant.id}`);
+        setLocation(`/admin/restaurant/${newRestaurant.id}`);
       } else {
         // Update existing restaurant
         await apiRequest("PATCH", `/api/restaurants/${id}`, formData);
@@ -247,7 +247,7 @@ export default function AdminRestaurantForm() {
             <Button 
               variant="outline" 
               className="text-white border-white hover:bg-amber-700"
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={() => setLocation("/admin/dashboard")}
             >
               Back to Dashboard
             </Button>
