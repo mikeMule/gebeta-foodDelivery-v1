@@ -185,6 +185,30 @@ const DeliveryMap = ({
     detectLocation();
   }, [detectLocation]);
 
+  // Add state for manual location entry
+  const [manualLocation, setManualLocation] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
+  
+  // Function to handle manual location setting
+  const handleManualLocationSet = () => {
+    if (manualLocation.trim()) {
+      const newLocation = {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        name: manualLocation.trim()
+      };
+      
+      setLocationName(manualLocation.trim());
+      setUserLocation(newLocation);
+      
+      if (onUserLocationChange) {
+        onUserLocationChange(newLocation);
+      }
+      
+      setShowManualInput(false);
+    }
+  };
+  
   return (
     <div className="relative rounded-lg overflow-hidden bg-[#FFF9F2]" style={{ height }}>
       <div className="absolute inset-0 bg-gradient-to-br from-[#8B572A]/5 to-[#8B572A]/15 z-10"></div>
@@ -221,14 +245,47 @@ const DeliveryMap = ({
           {/* Location info card */}
           <div className="absolute inset-x-0 bottom-0 p-4 z-20">
             <div className="bg-white rounded-lg shadow-md p-3">
-              <div className="flex items-center mb-2">
-                <MapPin className="h-5 w-5 text-[#8B572A] mr-2" />
-                <div className="font-medium text-[#4F2D1F]">
-                  Current Location: <span className="text-[#8B572A]">{locationName}</span>
+              {/* Manual location input */}
+              {showManualInput ? (
+                <div className="mb-2">
+                  <div className="flex items-center mb-1">
+                    <MapPin className="h-4 w-4 text-[#8B572A] mr-2" />
+                    <div className="text-sm font-medium text-[#4F2D1F]">
+                      Enter your location:
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      placeholder="e.g., Bole, Addis Ababa"
+                      className="flex-1 text-sm border border-neutral-200 rounded-lg px-2 py-1"
+                    />
+                    <button
+                      onClick={handleManualLocationSet}
+                      className="bg-[#8B572A] text-white text-xs px-2 py-1 rounded-lg"
+                    >
+                      Set
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowManualInput(false)}
+                    className="text-[#8B572A] text-xs mt-1"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center mb-2">
+                  <MapPin className="h-5 w-5 text-[#8B572A] mr-2" />
+                  <div className="font-medium text-[#4F2D1F]">
+                    Current Location: <span className="text-[#8B572A]">{locationName}</span>
+                  </div>
+                </div>
+              )}
               
-              {restaurantLocation && (
+              {restaurantLocation && !showManualInput && (
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center">
                     <Navigation className="h-4 w-4 text-[#8B572A]/70 mr-1" />
@@ -238,13 +295,28 @@ const DeliveryMap = ({
                 </div>
               )}
               
-              <button 
-                className="mt-2 text-[#8B572A] text-xs flex items-center justify-center w-full bg-[#E5A764]/10 py-1.5 rounded-full"
-                onClick={detectLocation}
-              >
-                <Navigation className="h-3 w-3 mr-1" />
-                <span>Refresh location</span>
-              </button>
+              <div className="flex mt-2 gap-2">
+                <button 
+                  className="flex-1 text-[#8B572A] text-xs flex items-center justify-center bg-[#E5A764]/10 py-1.5 rounded-full"
+                  onClick={detectLocation}
+                >
+                  <Navigation className="h-3 w-3 mr-1" />
+                  <span>Sync Location</span>
+                </button>
+                
+                {!showManualInput && (
+                  <button 
+                    className="flex-1 text-[#8B572A] text-xs flex items-center justify-center bg-[#E5A764]/10 py-1.5 rounded-full"
+                    onClick={() => {
+                      setManualLocation(locationName);
+                      setShowManualInput(true);
+                    }}
+                  >
+                    <MapPin className="h-3 w-3 mr-1" />
+                    <span>Enter Manually</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </>
