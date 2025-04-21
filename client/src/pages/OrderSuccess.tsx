@@ -26,6 +26,15 @@ const OrderSuccess = () => {
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Define handlers first to avoid reference errors
+  const handleTrackOrder = useCallback(() => {
+    setLocation('/order-tracking');
+  }, [setLocation]);
+
+  const handleReturnHome = useCallback(() => {
+    setLocation('/');
+  }, [setLocation]);
+
   // Update window dimensions when window resizes
   useEffect(() => {
     const handleResize = () => {
@@ -69,18 +78,20 @@ const OrderSuccess = () => {
       if (currentStep < orderSteps.length) {
         setCurrentStep(prev => Math.min(prev + 1, orderSteps.length));
       }
-    }, 15000); // Move to next step every 15 seconds
+    }, 7000); // Move to next step every 7 seconds (faster for demo)
     
-    return () => clearTimeout(stepTimer);
-  }, [currentStep, showContent]);
-
-  const handleTrackOrder = useCallback(() => {
-    setLocation('/order-tracking');
-  }, [setLocation]);
-
-  const handleReturnHome = useCallback(() => {
-    setLocation('/');
-  }, [setLocation]);
+    // Automatically transition to the full order tracking page after all steps
+    const autoRedirectTimer = setTimeout(() => {
+      if (currentStep >= orderSteps.length) {
+        handleTrackOrder();
+      }
+    }, 10000);
+    
+    return () => {
+      clearTimeout(stepTimer);
+      clearTimeout(autoRedirectTimer);
+    };
+  }, [currentStep, showContent, handleTrackOrder]);
 
   // Helper to get the appropriate icon for the step
   const getStepIcon = (iconName: string) => {
