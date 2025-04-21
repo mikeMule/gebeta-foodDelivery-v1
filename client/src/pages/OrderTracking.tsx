@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/lib/icons";
 import DeliveryMap from "@/components/DeliveryMap";
 import RatingStars from "@/components/RatingStars";
+import VoiceAssistant from "@/components/VoiceAssistant";
 import { fadeIn, slideUp } from "@/lib/animation";
 
 // Order status timeline steps - more detailed version for the full tracking page
