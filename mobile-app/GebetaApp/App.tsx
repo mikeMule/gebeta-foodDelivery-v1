@@ -1,146 +1,125 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
+import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppNavigator from './src/navigation/AppNavigator';
 
-// Import our screens (we'll create these next)
-import SplashScreen from './src/screens/SplashScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import OtpVerificationScreen from './src/screens/OtpVerificationScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import RestaurantDetailScreen from './src/screens/RestaurantDetailScreen';
-import CartScreen from './src/screens/CartScreen';
-import OrderSuccessScreen from './src/screens/OrderSuccessScreen';
-import OrderTrackingScreen from './src/screens/OrderTrackingScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import MyOrdersScreen from './src/screens/MyOrdersScreen';
+// Create an authentication context for the app
+export const AuthContext = React.createContext<{
+  isAuthenticated: boolean;
+  setIsAuthenticated: (value: boolean) => void;
+  userPhoneNumber: string | null;
+  setUserPhoneNumber: (value: string | null) => void;
+}>({
+  isAuthenticated: false,
+  setIsAuthenticated: () => {},
+  userPhoneNumber: null,
+  setUserPhoneNumber: () => {},
+});
 
-// Create our navigation stacks/tabs
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
-
-// Define our custom theme
-const gebetaTheme = {
-  ...DefaultTheme,
+// Create custom theme based on Ethiopian colors
+const theme = {
+  ...MD3LightTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...MD3LightTheme.colors,
     primary: '#8B572A',
     accent: '#E5A764',
     background: '#FFF9F2',
-    text: '#4F2D1F',
     surface: '#FFFFFF',
+    text: '#4F2D1F',
     error: '#C73030',
   },
 };
 
-// Bottom Tab Navigator
-function MainTabNavigator() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Cart') {
-            iconName = focused ? 'cart' : 'cart-outline';
-          } else if (route.name === 'Orders') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: gebetaTheme.colors.primary,
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Orders" component={MyOrdersScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-}
-
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userPhoneNumber, setUserPhoneNumber] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Load custom fonts
+  // Check authentication status on app start
   useEffect(() => {
-    async function loadFonts() {
-      await Font.loadAsync({
-        'DMSans-Regular': require('./src/assets/fonts/DMSans-Regular.ttf'),
-        'DMSans-Medium': require('./src/assets/fonts/DMSans-Medium.ttf'),
-        'DMSans-Bold': require('./src/assets/fonts/DMSans-Bold.ttf'),
-      }).catch(err => console.error('Error loading fonts:', err));
-      
-      setFontsLoaded(true);
-    }
-    
-    loadFonts();
-  }, []);
-
-  // Check if user is already authenticated
-  useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthentication = async () => {
       try {
-        const value = await AsyncStorage.getItem('isAuthenticated');
-        if (value === 'true') {
-          setIsAuthenticated(true);
-        }
-      } catch (e) {
-        console.error('Failed to load auth state');
+        const authStatus = await AsyncStorage.getItem('isAuthenticated');
+        const phoneNumber = await AsyncStorage.getItem('phoneNumber');
+        
+        setIsAuthenticated(authStatus === 'true');
+        setUserPhoneNumber(phoneNumber);
+      } catch (error) {
+        console.error('Error checking authentication:', error);
       } finally {
-        // Simulate a splash screen delay (3 seconds)
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 3000);
+        setIsLoading(false);
       }
     };
 
-    checkAuth();
+    // Load fonts
+    async function loadFonts() {
+      try {
+        await Font.loadAsync({
+          'DMSans-Regular': require('./assets/fonts/DMSans-Regular.ttf'),
+          'DMSans-Medium': require('./assets/fonts/DMSans-Medium.ttf'),
+          'DMSans-Bold': require('./assets/fonts/DMSans-Bold.ttf'),
+        });
+        setFontsLoaded(true);
+      } catch (error) {
+        console.error('Error loading fonts:', error);
+        // Continue even if fonts fail to load
+        setFontsLoaded(true);
+      }
+    }
+
+    // Wait for both operations
+    const initializeApp = async () => {
+      await Promise.all([checkAuthentication(), loadFonts()]);
+    };
+
+    initializeApp();
   }, []);
 
+  // Show loading screen while initializing
   if (isLoading || !fontsLoaded) {
-    return <SplashScreen />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#8B572A" />
+        <Text style={styles.loadingText}>Gebeta Food Delivery</Text>
+      </View>
+    );
   }
 
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={gebetaTheme}>
-        <NavigationContainer>
-          <StatusBar style="auto" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {!isAuthenticated ? (
-              // Auth Screens
-              <>
-                <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
-              </>
-            ) : (
-              // App Screens
-              <>
-                <Stack.Screen name="Main" component={MainTabNavigator} />
-                <Stack.Screen name="RestaurantDetail" component={RestaurantDetailScreen} />
-                <Stack.Screen name="OrderSuccess" component={OrderSuccessScreen} />
-                <Stack.Screen name="OrderTracking" component={OrderTrackingScreen} />
-              </>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
+      <StatusBar style="dark" />
+      <PaperProvider theme={theme}>
+        <AuthContext.Provider
+          value={{
+            isAuthenticated,
+            setIsAuthenticated,
+            userPhoneNumber,
+            setUserPhoneNumber,
+          }}
+        >
+          <AppNavigator />
+        </AuthContext.Provider>
       </PaperProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF9F2',
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 18,
+    color: '#4F2D1F',
+    fontWeight: '500',
+  },
+});
