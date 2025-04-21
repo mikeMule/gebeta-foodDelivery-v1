@@ -88,7 +88,7 @@ const OrderSuccess = () => {
     const advanceStep = (step: number, delay: number) => {
       const timer = setTimeout(() => {
         setCurrentStep(step);
-        if (step >= orderSteps.length) {
+        if (step >= orderSteps.length && !advanceComplete) {
           setAdvanceComplete(true);
         }
       }, delay);
@@ -110,14 +110,20 @@ const OrderSuccess = () => {
   useEffect(() => {
     if (!advanceComplete) return;
     
+    // Set up a one-time timer for auto-redirect
     const autoRedirectTimer = setTimeout(() => {
-      handleTrackOrder();
+      // Manually trigger the actions instead of using the handler
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        setLocation('/order-tracking');
+      }, 1500);
     }, 5000);
     
     return () => {
       clearTimeout(autoRedirectTimer);
     };
-  }, [advanceComplete, handleTrackOrder]);
+  }, [advanceComplete, setLocation]);
 
   // Helper to get the appropriate icon for the step
   const getStepIcon = (iconName: string) => {
