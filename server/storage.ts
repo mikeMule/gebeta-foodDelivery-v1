@@ -178,16 +178,24 @@ export class DatabaseStorage implements IStorage {
   
   // Category methods
   async getAllCategories(): Promise<string[]> {
-    // Using a raw SQL query to extract and flatten categories from all restaurants
-    const rows = await db.execute(sql`
-      SELECT DISTINCT unnest(string_to_array(categories, ', ')) as category
-      FROM restaurants
-      ORDER BY category
-    `);
-    
-    // Convert unknown type to any safely
-    const result = rows as unknown as Array<{category: string}>;
-    return result.map(row => row.category);
+    try {
+      // Get all restaurants first
+      const restaurants = await this.getAllRestaurants();
+      
+      // Extract and flatten categories
+      const categorySet = new Set<string>();
+      
+      restaurants.forEach(restaurant => {
+        const categories = restaurant.categories.split(', ');
+        categories.forEach(category => categorySet.add(category));
+      });
+      
+      // Convert to array and sort
+      return Array.from(categorySet).sort();
+    } catch (error) {
+      console.error('Error getting categories:', error);
+      return [];
+    }
   }
   
   // Helper method to check if database has been initialized

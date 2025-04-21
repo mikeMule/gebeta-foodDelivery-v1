@@ -38,7 +38,7 @@ const Cart = () => {
 
   return (
     <motion.div 
-      className="min-h-screen flex flex-col pb-24"
+      className="min-h-screen flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -56,7 +56,7 @@ const Cart = () => {
         </div>
       </header>
       
-      <div className="flex-grow p-4">
+      <div className="flex-grow p-4 pb-32">
         {restaurant && (
           <div className="bg-neutral-50 rounded-lg p-3 mb-4 flex items-center">
             <Icons.store className="text-lg text-primary mr-3" />
@@ -70,101 +70,123 @@ const Cart = () => {
         )}
         
         <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-          {cartItems.map((item, index) => (
-            <CartItem 
-              key={`${item.id}-${index}`}
-              item={item}
-              isLast={index === cartItems.length - 1}
-            />
-          ))}
+          {cartItems.length > 0 ? (
+            cartItems.map((item, index) => (
+              <CartItem 
+                key={`${item.id}-${index}`}
+                item={item}
+                isLast={index === cartItems.length - 1}
+              />
+            ))
+          ) : (
+            <div className="py-6 text-center">
+              <Icons.shoppingBag className="mx-auto mb-3 text-3xl text-neutral-300" />
+              <p className="text-neutral-500">Your cart is empty</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setLocation("/home")}
+              >
+                Browse Restaurants
+              </Button>
+            </div>
+          )}
           
-          <div className="mt-4 pt-3 border-t border-neutral-200">
-            <Button 
-              variant="ghost" 
-              className="text-primary flex items-center w-full justify-center py-2"
-              onClick={() => setLocation(`/restaurant/${restaurantId}`)}
-            >
-              <Icons.plus className="mr-1" />
-              <span>Add more items</span>
-            </Button>
-          </div>
+          {cartItems.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-neutral-200">
+              <Button 
+                variant="ghost" 
+                className="text-primary flex items-center w-full justify-center py-2"
+                onClick={() => setLocation(`/restaurant/${restaurantId}`)}
+              >
+                <Icons.plus className="mr-1" />
+                <span>Add more items</span>
+              </Button>
+            </div>
+          )}
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-          <h3 className="font-medium mb-3">Delivery Instructions</h3>
-          <Textarea 
-            className="w-full border border-neutral-200 rounded-lg p-3 text-sm" 
-            rows={2} 
-            placeholder="Add any special instructions..."
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-          />
-        </div>
-        
-        <motion.div 
-          className="bg-white rounded-xl shadow-sm p-4 mb-4"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h3 className="font-medium mb-3">Order Summary</h3>
-          
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-600">Subtotal</span>
-              <span>Birr {totalAmount.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-600">Delivery Fee</span>
-              <span>Birr {deliveryFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-neutral-600">Service Fee</span>
-              <span>Birr {serviceFee.toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div className="flex justify-between font-medium">
-            <span>Total</span>
-            <span>Birr {totalWithFees.toFixed(2)}</span>
-          </div>
-        </motion.div>
-        
-        <motion.div 
-          className="bg-white rounded-xl shadow-sm p-4"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h3 className="font-medium mb-3">Payment Method</h3>
-          
-          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-            <div className={`border rounded-lg p-3 flex items-center mb-3 ${paymentMethod === 'cash' ? 'border-primary' : 'border-neutral-200'}`}>
-              <RadioGroupItem value="cash" id="cash" className="mr-3" />
-              <Label htmlFor="cash" className="font-medium flex-grow">
-                Cash on Delivery
-              </Label>
+        {cartItems.length > 0 && (
+          <>
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <h3 className="font-medium mb-3">Delivery Instructions</h3>
+              <Textarea 
+                className="w-full border border-neutral-200 rounded-lg p-3 text-sm" 
+                rows={2} 
+                placeholder="Add any special instructions..."
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+              />
             </div>
             
-            <div className={`border rounded-lg p-3 flex items-center ${paymentMethod === 'telebirr' ? 'border-primary' : 'border-neutral-200'}`}>
-              <RadioGroupItem value="telebirr" id="telebirr" className="mr-3" />
-              <Label htmlFor="telebirr" className="font-medium flex-grow">
-                Telebirr
-              </Label>
-              <Icons.creditCard className="text-neutral-400" />
-            </div>
-          </RadioGroup>
-        </motion.div>
+            <motion.div 
+              className="bg-white rounded-xl shadow-sm p-4 mb-4"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h3 className="font-medium mb-3">Order Summary</h3>
+              
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-600">Subtotal</span>
+                  <span>Birr {totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-600">Delivery Fee</span>
+                  <span>Birr {deliveryFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-neutral-600">Service Fee</span>
+                  <span>Birr {serviceFee.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-between font-medium">
+                <span>Total</span>
+                <span>Birr {totalWithFees.toFixed(2)}</span>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="bg-white rounded-xl shadow-sm p-4"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="font-medium mb-3">Payment Method</h3>
+              
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <div className={`border rounded-lg p-3 flex items-center mb-3 ${paymentMethod === 'cash' ? 'border-primary' : 'border-neutral-200'}`}>
+                  <RadioGroupItem value="cash" id="cash" className="mr-3" />
+                  <Label htmlFor="cash" className="font-medium flex-grow">
+                    Cash on Delivery
+                  </Label>
+                </div>
+                
+                <div className={`border rounded-lg p-3 flex items-center ${paymentMethod === 'telebirr' ? 'border-primary' : 'border-neutral-200'}`}>
+                  <RadioGroupItem value="telebirr" id="telebirr" className="mr-3" />
+                  <Label htmlFor="telebirr" className="font-medium flex-grow">
+                    Telebirr
+                  </Label>
+                  <Icons.creditCard className="text-neutral-400" />
+                </div>
+              </RadioGroup>
+            </motion.div>
+          </>
+        )}
       </div>
       
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4">
-        <Button 
-          className="w-full bg-primary text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center"
-          onClick={handleCheckout}
-        >
-          <span>Place Order • Birr {totalWithFees.toFixed(2)}</span>
-        </Button>
-      </div>
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-[70px] left-0 right-0 bg-white border-t border-neutral-200 p-4 z-10">
+          <Button 
+            className="w-full bg-primary text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center"
+            onClick={handleCheckout}
+          >
+            <span>Place Order • Birr {totalWithFees.toFixed(2)}</span>
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 };
