@@ -49,30 +49,32 @@ const DeliveryMap = ({
           
           setUserLocation(actualLocation);
           
-          // Try to determine location name
+          // Try to determine location name using our backend proxy to Google Maps API
           try {
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            // Call our server-side API that will use the Google Maps API key
+            fetch(`/api/geocode?lat=${lat}&lng=${lng}`)
               .then(response => response.json())
               .then(data => {
-                const locationName = data.address?.city || 
-                                    data.address?.town || 
-                                    data.address?.suburb || 
-                                    data.address?.neighbourhood || 
-                                    "Your Location";
-                console.log("Location name:", locationName);
-                setLocationName(locationName);
-                
-                // Update the location with the fetched name
-                const namedLocation = {
-                  lat: lat,
-                  lng: lng,
-                  name: locationName
-                };
-                
-                setUserLocation(namedLocation);
-                
-                if (onUserLocationChange) {
-                  onUserLocationChange(namedLocation);
+                if (data && data.locationName) {
+                  const locationName = data.locationName;
+                  console.log("Location name:", locationName);
+                  setLocationName(locationName);
+                  
+                  // Update the location with the fetched name
+                  const namedLocation = {
+                    lat: lat,
+                    lng: lng,
+                    name: locationName
+                  };
+                  
+                  setUserLocation(namedLocation);
+                  
+                  if (onUserLocationChange) {
+                    onUserLocationChange(namedLocation);
+                  }
+                } else {
+                  console.error("Error getting location name from server");
+                  setLocationName("Your Location");
                 }
               })
               .catch(error => {
