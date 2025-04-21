@@ -37,24 +37,67 @@ const DeliveryMap = ({
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           
-          // Find the closest predefined location
-          const closestLocation = findClosestLocation(lat, lng);
-          setUserLocation(closestLocation);
-          setLocationName(closestLocation.name);
+          // Use the actual user's current location instead of finding closest predefined location
+          const actualLocation = {
+            lat: lat,
+            lng: lng,
+            name: "Your Location"
+          };
           
-          if (onUserLocationChange) {
-            onUserLocationChange(closestLocation);
+          // Log actual coordinates for debugging
+          console.log("Actual coordinates:", lat, lng);
+          
+          setUserLocation(actualLocation);
+          
+          // Try to determine location name
+          try {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+              .then(response => response.json())
+              .then(data => {
+                const locationName = data.address?.city || 
+                                    data.address?.town || 
+                                    data.address?.suburb || 
+                                    data.address?.neighbourhood || 
+                                    "Your Location";
+                console.log("Location name:", locationName);
+                setLocationName(locationName);
+                
+                // Update the location with the fetched name
+                const namedLocation = {
+                  lat: lat,
+                  lng: lng,
+                  name: locationName
+                };
+                
+                setUserLocation(namedLocation);
+                
+                if (onUserLocationChange) {
+                  onUserLocationChange(namedLocation);
+                }
+              })
+              .catch(error => {
+                console.error("Error fetching location name:", error);
+                setLocationName("Your Location");
+              });
+          } catch (error) {
+            console.error("Error with location name lookup:", error);
+            setLocationName("Your Location");
           }
           
           // Calculate distance if restaurant location is provided
           if (restaurantLocation) {
             const dist = calculateDistance(
-              closestLocation.lat, 
-              closestLocation.lng, 
+              lat, 
+              lng, 
               restaurantLocation.lat, 
               restaurantLocation.lng
             );
             setDistance(dist);
+          }
+          
+          // Initial callback with actual coordinates
+          if (onUserLocationChange) {
+            onUserLocationChange(actualLocation);
           }
           
           setIsLoading(false);
@@ -78,7 +121,11 @@ const DeliveryMap = ({
           
           setIsLoading(false);
         },
-        { enableHighAccuracy: true }
+        { 
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
@@ -139,47 +186,68 @@ const DeliveryMap = ({
   }, [detectLocation]);
 
   return (
-    <div className="relative rounded-lg overflow-hidden bg-neutral-100" style={{ height }}>
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/20 z-10"></div>
+    <div className="relative rounded-lg overflow-hidden bg-[#FFF9F2]" style={{ height }}>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#8B572A]/5 to-[#8B572A]/15 z-10"></div>
       
-      <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-0">
-        <MapIcon className="w-48 h-48 text-primary/10" />
+      {/* Map background with coordinates displayed */}
+      <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center z-0">
+        <MapIcon className="w-48 h-48 text-[#8B572A]/10" />
+        {!isLoading && (
+          <div className="absolute top-3 right-3 bg-white/80 rounded-lg px-2 py-1 text-xs text-[#4F2D1F]">
+            <div className="font-mono">{userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</div>
+          </div>
+        )}
       </div>
       
       {isLoading ? (
         <div className="absolute inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-20">
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-2 text-sm text-neutral-600">Detecting your location...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B572A]"></div>
+            <p className="mt-2 text-sm text-[#4F2D1F]">Detecting your location...</p>
           </div>
         </div>
       ) : (
-        <div className="absolute inset-x-0 bottom-0 p-4 z-20">
-          <div className="bg-white rounded-lg shadow-md p-3">
-            <div className="flex items-center mb-2">
-              <MapPin className="h-5 w-5 text-primary mr-2" />
-              <div className="font-medium">Your Location: <span className="text-primary">{locationName}</span></div>
-            </div>
-            
-            {restaurantLocation && (
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center">
-                  <Navigation className="h-4 w-4 text-neutral-500 mr-1" />
-                  <span>Distance to {restaurantLocation.name}</span>
-                </div>
-                <span className="font-medium">{distance.toFixed(1)} km</span>
+        <>
+          {/* Location marker in center */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15">
+            <div className="relative">
+              <div className="w-5 h-5 rounded-full bg-[#8B572A] flex items-center justify-center p-4 animate-pulse">
+                <MapPin className="absolute h-4 w-4 text-white" />
               </div>
-            )}
-            
-            <button 
-              className="mt-2 text-primary text-xs flex items-center justify-center w-full"
-              onClick={detectLocation}
-            >
-              <Navigation className="h-3 w-3 mr-1" />
-              <span>Refresh location</span>
-            </button>
+              <div className="w-10 h-10 rounded-full border-2 border-[#8B572A]/30 absolute -top-2.5 -left-2.5"></div>
+            </div>
           </div>
-        </div>
+          
+          {/* Location info card */}
+          <div className="absolute inset-x-0 bottom-0 p-4 z-20">
+            <div className="bg-white rounded-lg shadow-md p-3">
+              <div className="flex items-center mb-2">
+                <MapPin className="h-5 w-5 text-[#8B572A] mr-2" />
+                <div className="font-medium text-[#4F2D1F]">
+                  Current Location: <span className="text-[#8B572A]">{locationName}</span>
+                </div>
+              </div>
+              
+              {restaurantLocation && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center">
+                    <Navigation className="h-4 w-4 text-[#8B572A]/70 mr-1" />
+                    <span className="text-[#4F2D1F]">Distance to {restaurantLocation.name}</span>
+                  </div>
+                  <span className="font-medium text-[#8B572A]">{distance.toFixed(1)} km</span>
+                </div>
+              )}
+              
+              <button 
+                className="mt-2 text-[#8B572A] text-xs flex items-center justify-center w-full bg-[#E5A764]/10 py-1.5 rounded-full"
+                onClick={detectLocation}
+              >
+                <Navigation className="h-3 w-3 mr-1" />
+                <span>Refresh location</span>
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
