@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import CartItem from "@/components/CartItem";
+import DeliveryMap from "@/components/DeliveryMap";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
 import { type Restaurant } from "@shared/schema";
@@ -202,7 +203,17 @@ const Cart = () => {
         {cartItems.length > 0 && (
           <>
             <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-              <h3 className="font-medium mb-3">Delivery Instructions</h3>
+              <h3 className="font-medium mb-3">Delivery Location</h3>
+              <DeliveryMap 
+                height="180px"
+                restaurantLocation={restaurant ? { 
+                  lat: restaurant.latitude || 8.9806, 
+                  lng: restaurant.longitude || 38.7578,
+                  name: restaurant.name 
+                } : undefined}
+              />
+              
+              <h3 className="font-medium my-3">Delivery Instructions</h3>
               <Textarea 
                 className="w-full border border-neutral-200 rounded-lg p-3 text-sm" 
                 rows={2} 
@@ -375,7 +386,6 @@ const Cart = () => {
               </div>
             )}
             <span>Proceed to Checkout • Birr {totalWithFees.toFixed(2)}</span>
-            <Icons.arrowRight className="w-4 h-4 ml-1" />
           </Button>
           
           <p className="text-center text-xs text-neutral-500 mt-2">
