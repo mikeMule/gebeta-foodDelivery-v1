@@ -12,6 +12,10 @@ import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 
 const PostgresSessionStore = connectPg(session);
 
@@ -199,11 +203,17 @@ export class DatabaseStorage implements IStorage {
   // Initialize with mock data
   private async initializeMockData() {
     try {
-      // Create mock users
+      // Create mock users with properly hashed password
+      const hashedPassword = await (async () => {
+        const salt = randomBytes(16).toString("hex");
+        const buf = await scryptAsync("password", salt, 64) as Buffer;
+        return `${buf.toString("hex")}.${salt}`;
+      })();
+      
       const user = await this.createUser({
         username: "user1",
         phoneNumber: "0916182957",
-        password: "password",
+        password: hashedPassword,
         location: "Bole, Addis Ababa"
       });
       
