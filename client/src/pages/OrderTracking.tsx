@@ -7,6 +7,7 @@ import DeliveryMap from "@/components/DeliveryMap";
 import RatingStars from "@/components/RatingStars";
 import VoiceAssistant from "@/components/VoiceAssistant";
 import { fadeIn, slideUp } from "@/lib/animation";
+import { Mic } from "lucide-react";
 
 // Order status timeline steps - more detailed version for the full tracking page
 const orderSteps = [
@@ -50,6 +51,7 @@ const OrderTracking = () => {
   const [currentStep, setCurrentStep] = useState(3); // Start at the "On the Way" step
   const [showRating, setShowRating] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState(10); // in minutes
+  const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
   
   // Mock order data - in a real app, you would fetch this data from your API
   const orderData = {
@@ -119,15 +121,25 @@ const OrderTracking = () => {
       transition={{ duration: 0.3 }}
     >
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-4 py-4 flex items-center">
-          <Button 
-            variant="ghost" 
-            className="p-0 mr-2"
-            onClick={handleBackClick}
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              className="p-0 mr-2"
+              onClick={handleBackClick}
+            >
+              <Icons.chevronLeft className="h-6 w-6 text-[#4F2D1F]" />
+            </Button>
+            <h1 className="text-lg font-bold text-[#4F2D1F]">Track Order #{orderData.id}</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-[#8B572A] hover:bg-[#E5A764]/10"
+            onClick={() => setShowVoiceAssistant(prev => !prev)}
           >
-            <Icons.chevronLeft className="h-6 w-6 text-[#4F2D1F]" />
+            <Mic className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold text-[#4F2D1F]">Track Order #{orderData.id}</h1>
         </div>
       </header>
 
@@ -282,6 +294,28 @@ const OrderTracking = () => {
             </motion.div>
           )}
         </div>
+      </div>
+
+      {/* Voice assistant - toggled when the mic button is clicked */}
+      {showVoiceAssistant && (
+        <VoiceAssistant 
+          orderStatus={orderSteps[currentStep - 1].name}
+          trackingNumber={orderData.id}
+          estimatedDeliveryTime={estimatedTime > 0 ? `${estimatedTime} minutes` : "arriving now"}
+          onClose={() => setShowVoiceAssistant(false)}
+        />
+      )}
+      
+      {/* Floating voice button for mobile */}
+      <div className="md:hidden">
+        <Button
+          variant="default"
+          size="icon"
+          className="fixed bottom-6 right-6 rounded-full h-14 w-14 bg-[#8B572A] hover:bg-[#4F2D1F] shadow-lg"
+          onClick={() => setShowVoiceAssistant(true)}
+        >
+          <Mic className="h-6 w-6 text-white" />
+        </Button>
       </div>
     </motion.div>
   );
