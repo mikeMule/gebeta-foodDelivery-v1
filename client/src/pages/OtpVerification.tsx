@@ -40,7 +40,13 @@ const OtpVerification = () => {
 
   const handleVerify = () => {
     // Mock OTP verification
-    verifyOtp(otp.join(""));
+    const otpString = otp.join("");
+    console.log("Verifying OTP:", otpString);
+    
+    // Update authentication state and persist to localStorage
+    verifyOtp(otpString);
+    
+    // Redirect to home page
     setLocation("/home");
   };
 

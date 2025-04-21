@@ -107,16 +107,21 @@ function RedirectHandler() {
   const [location, setLocation] = useLocation();
   
   useEffect(() => {
+    console.log("RedirectHandler - Auth status:", isAuthenticated);
+    
     // If the URL has '/admin', don't redirect
     if (location.startsWith('/admin')) {
+      console.log("On admin route, not redirecting");
       return;
     }
     
     // If user is authenticated, redirect to home
     if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to /home");
       setLocation("/home");
     } else {
       // If not authenticated, redirect to login
+      console.log("User is not authenticated, redirecting to /login");
       setLocation("/login");
     }
   }, [isAuthenticated, location, setLocation]);

@@ -11,7 +11,7 @@ import { containerVariants, itemVariants } from "@/lib/animation";
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("0916182957");
   const [, setLocation] = useLocation();
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
 
   const handleLogin = () => {
     // Mock login - store phone number and navigate to OTP screen
@@ -22,7 +22,17 @@ const Login = () => {
   const handleSocialLogin = (provider: string) => {
     // In a real app, this would initiate OAuth flow
     console.log(`Login with ${provider}`);
-    login({ phoneNumber: "0916182957" });
+    
+    // Login and verify in one step for social login
+    login({ 
+      phoneNumber: "0916182957",
+      userType: "customer", 
+      fullName: `Test ${provider} User` 
+    });
+    
+    // Complete verification to properly set isAuthenticated flag
+    verifyOtp("1234");
+    
     setLocation("/home");
   };
 
