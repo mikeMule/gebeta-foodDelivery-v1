@@ -26,10 +26,18 @@ const OrderSuccess = () => {
   const [orderNumber] = useState(() => Math.floor(10000 + Math.random() * 90000));
   const [currentStep, setCurrentStep] = useState(1);
   const [advanceComplete, setAdvanceComplete] = useState(false);
+  const [trackingNumber] = useState(() => Math.random().toString(36).substring(2, 10).toUpperCase());
+  const [isLoading, setIsLoading] = useState(false);
 
   // Define handlers first to avoid reference errors
   const handleTrackOrder = useCallback(() => {
-    setLocation('/order-tracking');
+    setIsLoading(true);
+    
+    // Simulate network delay
+    setTimeout(() => {
+      setIsLoading(false);
+      setLocation('/order-tracking');
+    }, 1500);
   }, [setLocation]);
 
   const handleReturnHome = useCallback(() => {
@@ -227,7 +235,7 @@ const OrderSuccess = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5A764]/20">
               <div className="text-left">
                 <p className="text-sm text-[#8B572A]">Payment Method</p>
                 <p className="text-[#4F2D1F] font-medium">TeleBirr</p>
@@ -236,12 +244,24 @@ const OrderSuccess = () => {
                 <Icons.creditCard className="w-6 h-6 text-[#8B572A]" />
               </div>
             </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <p className="text-sm text-[#8B572A]">Tracking Number</p>
+                <p className="text-lg font-bold text-[#4F2D1F]">{trackingNumber}</p>
+              </div>
+              <div className="w-12 h-12 bg-[#E5A764]/20 rounded-full flex items-center justify-center">
+                <Icons.mapPin className="w-6 h-6 text-[#8B572A]" />
+              </div>
+            </div>
           </motion.div>
           
           <div className="flex flex-col space-y-3 max-w-md w-full mx-auto">
             <Button 
               className="bg-[#8B572A] hover:bg-[#4F2D1F] text-white font-medium py-6"
               onClick={handleTrackOrder}
+              isLoading={isLoading}
+              loadingText="Loading Tracking Info..."
             >
               <Icons.mapPin className="mr-2 h-5 w-5" />
               Track My Order

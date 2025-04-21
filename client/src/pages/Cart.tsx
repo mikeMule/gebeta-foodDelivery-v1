@@ -123,12 +123,19 @@ const Cart = () => {
   };
   
   const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = () => {
     // If Telebirr is selected, payment will be handled by the QR code component
     // Otherwise, process other payment methods or go straight to order success
     if (paymentMethod !== 'telebirr') {
-      setLocation("/order-success");
+      setIsProcessing(true);
+      
+      // Simulate network delay
+      setTimeout(() => {
+        setIsProcessing(false);
+        setLocation("/order-success");
+      }, 2000);
     }
   };
   
@@ -455,8 +462,10 @@ const Cart = () => {
             <Button 
               className="w-full bg-[#8B572A] hover:bg-[#8B572A]/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-md transition-all duration-300"
               onClick={handleCheckout}
+              isLoading={isProcessing}
+              loadingText={`Processing Payment • Birr ${totalWithFees.toFixed(2)}`}
             >
-              {selectedDeliveryOption?.icon && (
+              {selectedDeliveryOption?.icon && !isProcessing && (
                 <motion.div 
                   className="mr-1 bg-white/20 p-1 rounded-full"
                   animate={{ rotate: [0, 5, 0, -5, 0] }}
