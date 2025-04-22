@@ -2,10 +2,12 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertOrderSchema, insertReviewSchema, User } from "@shared/schema";
+import { insertOrderSchema, insertReviewSchema, User, orders } from "@shared/schema";
 import { setupAuth } from "./auth";
 import session from 'express-session';
 import { setupWebSocketServer, sendNotification } from "./websocket";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 // Extend Express.Session and SessionData
 declare module 'express-session' {
@@ -312,6 +314,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(orders);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch orders" });
+    }
+  });
+  
+  // Mark an order as read (for notifications)
+  app.patch("/api/orders/:id/read", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Determine if the user has permission to mark this order as read
+      let hasPermission = false;
+      
+      // Restaurant owners can mark orders for their restaurant as read
+      if (req.user?.userType === "restaurant_owner" && req.user?.restaurantId === order.restaurantId) {
+        hasPermission = true;
+      }
+      
+      // Customers can mark their own orders as read
+      if (req.user?.userType === "customer" && req.user?.id === order.userId) {
+        hasPermission = true;
+      }
+      
+      // Admins can mark any order as read
+      if (req.user?.userType === "admin") {
+        hasPermission = true;
+      }
+      
+      // Delivery partners can mark orders assigned to them as read
+      if (req.user?.userType === "delivery_partner" && order.deliveryPartnerId === req.user?.id) {
+        hasPermission = true;
+      }
+      
+      if (!hasPermission) {
+        return res.status(403).json({ message: "You don't have permission to mark this order as read" });
+      }
+      
+      // Update the is_read flag in the database
+      await db
+        .update(orders)
+        .set({ isRead: true })
+        .where(eq(orders.id, id));
+      
+      return res.status(200).json({ message: "Order marked as read" });
+    } catch (error) {
+      console.error("Error marking order as read:", error);
+      return res.status(500).json({ message: "Failed to mark order as read" });
     }
   });
 
@@ -895,6 +947,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.assignDeliveryPartner(orderId, deliveryPartnerId);
       }
       
+      // Get the user who placed the order
+      const customer = await storage.getUser(order.userId);
+      
+      // Send WebSocket notification to the customer about their order status update
+      sendNotification({
+        type: 'order_status_update',
+        title: 'Order Status Updated',
+        message: `Your order #${order.id} status is now: ${status}`,
+        data: {
+          orderId: order.id,
+          status: status,
+          restaurantId: order.restaurantId,
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        userId: order.userId,
+        userType: 'customer'
+      });
+      
+      // If this is an admin approval, also notify the restaurant
+      if (req.user?.userType === 'admin' && (status === 'approved' || status === 'rejected')) {
+        sendNotification({
+          type: 'order_admin_decision',
+          title: `Order ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+          message: `Order #${order.id} has been ${status} by admin`,
+          data: {
+            orderId: order.id,
+            status: status,
+            timestamp: new Date().toISOString()
+          }
+        }, {
+          restaurantId: order.restaurantId,
+          userType: 'restaurant_owner'
+        });
+      }
+      
       return res.status(200).json(updatedOrder);
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -995,7 +1083,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedOrder = await storage.assignDeliveryPartner(orderId, parseInt(deliveryPartnerId));
       await storage.updateOrderStatus(orderId, "out_for_delivery");
       
-      // Notify the delivery partner (in a real app, you might use a real-time service)
+      // Get restaurant and order information
+      const restaurant = await storage.getRestaurant(order.restaurantId);
+      const customer = await storage.getUser(order.userId);
+      
+      // Notify the delivery partner via WebSocket
+      sendNotification({
+        type: 'delivery_assignment',
+        title: 'New Delivery Assignment',
+        message: `You have been assigned to deliver order #${order.id} from ${restaurant?.name}`,
+        data: {
+          orderId: order.id,
+          restaurantId: order.restaurantId,
+          restaurantName: restaurant?.name,
+          customerName: customer?.fullName,
+          deliveryAddress: order.deliveryAddress,
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        userId: parseInt(deliveryPartnerId),
+        userType: 'delivery_partner'
+      });
+      
+      // Also notify the customer
+      sendNotification({
+        type: 'delivery_assigned',
+        title: 'Delivery Partner Assigned',
+        message: `Your order #${order.id} has been assigned to a delivery partner and is on the way!`,
+        data: {
+          orderId: order.id,
+          status: "out_for_delivery",
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        userId: order.userId,
+        userType: 'customer'
+      });
       
       return res.status(200).json(updatedOrder);
     } catch (error) {
@@ -1004,6 +1127,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin approval for orders
+  app.patch("/api/orders/:id/approve", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { approved } = req.body;
+      
+      // Only admins can approve orders
+      if (req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Only admins can approve orders" });
+      }
+      
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Update approval status
+      await db
+        .update(orders)
+        .set({ 
+          adminApproved: approved === true,
+          needsApproval: false,
+          isRead: false // Mark as unread so it appears as a new notification
+        })
+        .where(eq(orders.id, id));
+      
+      // Get updated order
+      const updatedOrder = await storage.getOrder(id);
+      
+      // Send notification to restaurant about the approval
+      sendNotification({
+        type: 'order_approval',
+        title: approved ? 'Order Approved' : 'Order Rejected',
+        message: `Order #${id} has been ${approved ? 'approved' : 'rejected'} by admin`,
+        data: {
+          orderId: id,
+          approved: approved,
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        restaurantId: order.restaurantId,
+        userType: 'restaurant_owner'
+      });
+      
+      // Send notification to customer about the approval
+      sendNotification({
+        type: 'order_approval',
+        title: approved ? 'Order Approved' : 'Order Rejected',
+        message: `Your order #${id} has been ${approved ? 'approved' : 'rejected'} by admin`,
+        data: {
+          orderId: id,
+          approved: approved,
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        userId: order.userId,
+        userType: 'customer'
+      });
+      
+      return res.status(200).json(updatedOrder);
+    } catch (error) {
+      console.error("Error approving order:", error);
+      return res.status(500).json({ message: "Failed to approve order" });
+    }
+  });
+  
   // Get restaurant dashboard statistics
   app.get("/api/restaurant/:id/statistics", requireAuth, async (req: Request, res: Response) => {
     try {
