@@ -149,9 +149,20 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
       
     } catch (error) {
       console.error("Error creating owner account:", error);
+      // Check for specific error messages
+      let errorMessage = "Failed to create owner account";
+      
+      if (error instanceof Error && error.message.includes("Phone number already exists")) {
+        errorMessage = "This phone number is already registered. Please use a different phone number.";
+      } else if (error instanceof Error && error.message.includes("Username already exists")) {
+        errorMessage = "This username is already taken. Please generate new credentials.";
+      } else if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create owner account",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

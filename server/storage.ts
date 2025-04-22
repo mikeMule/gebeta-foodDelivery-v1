@@ -331,38 +331,37 @@ export class DatabaseStorage implements IStorage {
   
   async getRestaurantOwners(restaurantId: number): Promise<User[]> {
     try {
-      // Get all users with type "restaurant_owner" and matching restaurantId
-      const ownersResult = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          phoneNumber: users.phoneNumber,
-          password: users.password,
-          location: users.location,
-          email: users.email,
-          idNumber: users.idNumber,
-          idVerified: users.idVerified,
-          userType: users.userType,
-          metadata: users.metadata,
-          createdAt: users.createdAt
-        })
-        .from(users)
-        .where(
-          and(
-            eq(users.userType, "restaurant_owner"),
-            // Using the metadata JSON field to check for restaurant ID
-            sql`CAST(${users.metadata}->>'restaurantId' AS INTEGER) = ${restaurantId}`
-          )
-        );
+      // Use raw SQL instead of the query builder to avoid type issues with metadata
+      const query = sql`
+        SELECT * FROM users
+        WHERE user_type = 'restaurant_owner'
+        AND metadata::jsonb->>'restaurantId' = ${restaurantId.toString()}
+      `;
       
-      // Convert database fields to User objects with the restaurantId property
-      return ownersResult.map(owner => {
-        // Process metadata using our helper function
-        const metadata = parseMetadata(owner.metadata);
+      const result = await db.execute(query);
+      
+      if (!result.rows || result.rows.length === 0) {
+        return [];
+      }
+      
+      // Map the database rows to User objects
+      return result.rows.map((row: any) => {
+        // Process metadata
+        const metadata = parseMetadata(row.metadata);
         
-        // Return User object with restaurantId from metadata
+        // Create User object
         return {
-          ...owner,
+          id: row.id,
+          username: row.username,
+          phoneNumber: row.phone_number,
+          password: row.password,
+          location: row.location,
+          fullName: row.full_name,
+          email: row.email,
+          idNumber: row.id_number,
+          idVerified: row.id_verified,
+          userType: row.user_type,
+          createdAt: row.created_at,
           restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : restaurantId,
           restaurantName: metadata.restaurantName as string || null
         } as User;
