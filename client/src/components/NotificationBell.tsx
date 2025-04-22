@@ -26,12 +26,38 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   restaurantId
 }) => {
   const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [animating, setAnimating] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   
-  const { notifications, clearNotification, clearAllNotifications, markAsRead, markAllAsRead } = useWebSocket({
+  // Use a more resilient WebSocket connection with status tracking
+  const { 
+    notifications, 
+    clearNotification, 
+    clearAllNotifications, 
+    markAsRead, 
+    markAllAsRead,
+    isConnected,
+    connect
+  } = useWebSocket({
     userId,
     userType,
     restaurantId,
+    onConnect: () => {
+      console.log('NotificationBell: WebSocket connected successfully');
+      setConnectionStatus('connected');
+    },
+    onDisconnect: () => {
+      console.log('NotificationBell: WebSocket disconnected');
+      setConnectionStatus('disconnected');
+    },
     onMessage: (data) => {
+      // Update connection status for pong messages
+      if (data.type === 'pong') {
+        setConnectionStatus('connected');
+        return; // Don't process pongs further
+      }
+      
       // Play sound for new notifications
       if (data.type && data.title) {
         try {
@@ -60,8 +86,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
       }
     }
   });
-  const [isOpen, setIsOpen] = useState(false);
-  const [animating, setAnimating] = useState(false);
+  
+  // Attempt to reconnect if disconnected
+  useEffect(() => {
+    if (connectionStatus === 'disconnected') {
+      // Try to reconnect after a short delay
+      const timer = setTimeout(() => {
+        console.log('NotificationBell: Attempting to reconnect WebSocket');
+        connect();
+        setConnectionStatus('connecting');
+      }, 5000); // Wait 5 seconds before reconnecting
+      
+      return () => clearTimeout(timer);
+    }
+  }, [connectionStatus, connect]);
   
   // Count unread notifications
   const unreadCount = notifications.filter(n => !n.read).length;

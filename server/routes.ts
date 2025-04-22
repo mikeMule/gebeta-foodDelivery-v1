@@ -659,11 +659,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Restaurant owner created successfully:", userWithoutPassword);
         
         return res.status(201).json(userWithoutPassword);
-      } catch (createError) {
+      } catch (createError: any) {
         console.error("Database error creating restaurant owner:", createError);
         return res.status(500).json({ 
           message: "Database error creating restaurant owner", 
-          details: createError.message 
+          details: createError.message || "Unknown database error" 
         });
       }
     } catch (error) {

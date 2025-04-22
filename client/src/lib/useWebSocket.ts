@@ -236,25 +236,76 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     }
   }, [userId, userType, restaurantId, onConnect, onDisconnect, onMessage, retryInterval, notifications]);
   
-  // Connect on initial render
+  // Connect on initial render and keep connection alive
   useEffect(() => {
+    // Try to connect immediately
     const cleanup = connect();
+    
+    // Handle refreshing the connection when needed
+    let reconnectTimeout: number | null = null;
+    let keepAliveInterval: number | null = null;
     
     // Add visibility change listener to reconnect when tab becomes visible
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !isConnected) {
-        console.log('Tab became visible, attempting to reconnect WebSocket');
-        connect();
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, checking WebSocket connection');
+        
+        // If not connected, attempt to reconnect
+        if (!isConnected) {
+          console.log('Reconnecting WebSocket after tab visibility change');
+          connect();
+        } else {
+          // Even if connected, send a ping to keep the connection alive
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            try {
+              socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+              console.log('Sent ping after visibility change');
+            } catch (e) {
+              console.error('Error sending ping after visibility change:', e);
+              // If error sending ping, try to reconnect
+              connect();
+            }
+          }
+        }
       }
     };
     
     // Add online status change listener
     const handleOnlineStatus = () => {
-      if (navigator.onLine && !isConnected) {
-        console.log('Device came online, attempting to reconnect WebSocket');
-        connect();
+      if (navigator.onLine) {
+        console.log('Device came online, checking WebSocket connection');
+        
+        // If not connected, attempt to reconnect
+        if (!isConnected) {
+          console.log('Reconnecting WebSocket after online status change');
+          connect();
+        }
       }
     };
+    
+    // Use a simpler keep-alive mechanism to periodically check connection
+    keepAliveInterval = window.setInterval(() => {
+      if (socket) {
+        if (socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+          console.log('WebSocket is closed or closing, attempting to reconnect');
+          connect();
+        } else if (socket.readyState === WebSocket.OPEN) {
+          // Send a simple ping to keep the connection alive
+          try {
+            socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+            console.log('Sent keep-alive ping');
+          } catch (err) {
+            console.error('Error sending keep-alive ping:', err);
+            // If error sending keep-alive, try to reconnect
+            connect();
+          }
+        }
+      } else if (!isConnected) {
+        // If no socket exists and not connected, attempt to connect
+        console.log('No socket exists, attempting to connect');
+        connect();
+      }
+    }, 30000); // Check connection every 30 seconds
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnlineStatus);
@@ -262,26 +313,50 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     // Clean up
     return () => {
       console.log('Cleaning up WebSocket connections and event listeners');
+      
+      // Clear any pending reconnect timeouts
+      if (reconnectTimeout !== null) {
+        clearTimeout(reconnectTimeout);
+      }
+      
+      // Clear keep-alive interval
+      if (keepAliveInterval !== null) {
+        clearInterval(keepAliveInterval);
+      }
+      
+      // Remove event listeners
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnlineStatus);
       
+      // Cleanup returned from connect
       if (cleanup) {
         cleanup();
       }
       
+      // Properly close the socket if it exists
       if (socket) {
         console.log('Closing WebSocket connection during cleanup');
+        
         // Send a clean disconnection message if possible
         try {
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ type: 'client_disconnect' }));
+            // Give it a moment to send before closing
+            setTimeout(() => {
+              socket.close(1000, 'Client disconnecting normally');
+            }, 100);
+          } else {
+            socket.close();
           }
         } catch (e) {
-          console.error('Error sending disconnect message:', e);
+          console.error('Error during socket cleanup:', e);
+          // Force close if there's an error
+          try {
+            socket.close();
+          } catch (e2) {
+            console.error('Error force closing socket:', e2);
+          }
         }
-        
-        // Close the socket with a normal closure code
-        socket.close(1000, 'Client disconnecting normally');
       }
     };
   }, [connect, isConnected, socket]);

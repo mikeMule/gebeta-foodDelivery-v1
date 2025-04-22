@@ -42,18 +42,35 @@ export function setupWebSocketServer(server: Server) {
     console.error('WebSocket server error:', error);
   });
 
-  // Setup a heartbeat interval to detect dead connections
+  // Setup a heartbeat interval to detect dead connections with more lenient timeout
   const interval = setInterval(() => {
     wss.clients.forEach((ws: WebSocket) => {
-      if ((ws as any).isAlive === false) {
-        console.log('Terminating inactive WebSocket connection');
+      // Only terminate if definitely inactive for multiple cycles
+      if ((ws as any).inactiveCount && (ws as any).inactiveCount > 2) {
+        console.log('Terminating inactive WebSocket connection after multiple cycles');
         return ws.terminate();
       }
       
+      if ((ws as any).isAlive === false) {
+        // Mark inactive but don't terminate immediately
+        (ws as any).inactiveCount = ((ws as any).inactiveCount || 0) + 1;
+        console.log(`WebSocket connection inactive (count: ${(ws as any).inactiveCount})`);
+      } else {
+        // Reset inactive count if it was alive
+        (ws as any).inactiveCount = 0;
+      }
+      
+      // Set to not alive, will be marked alive when pong is received
       (ws as any).isAlive = false;
-      ws.ping(() => {}); // Empty noop function as callback
+      
+      // Send a ping
+      try {
+        ws.ping(() => {}); // Empty noop function as callback
+      } catch (error) {
+        console.error('Error sending ping:', error);
+      }
     });
-  }, 30000); // Check every 30 seconds
+  }, 45000); // Check every 45 seconds (increased from 30)
   
   // Clean up the interval on server close
   wss.on('close', () => {
