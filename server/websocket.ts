@@ -95,6 +95,29 @@ export function setupWebSocketServer(server: Server) {
             }));
           }
         }
+        // Handle ping messages (client heartbeat)
+        else if (data.type === 'ping') {
+          // Mark the connection as alive
+          (ws as any).isAlive = true;
+          
+          // Respond with a pong message
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'pong',
+              timestamp: Date.now()
+            }));
+          }
+        }
+        // Handle client disconnect message
+        else if (data.type === 'client_disconnect') {
+          console.log('Client sent disconnect message, closing connection gracefully');
+          // Remove from connections list before closing
+          connections = connections.filter(conn => conn.ws !== ws);
+          // Close the connection if still open
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Client requested disconnect');
+          }
+        }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
       }

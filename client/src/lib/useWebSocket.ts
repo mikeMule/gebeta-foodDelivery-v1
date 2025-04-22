@@ -69,15 +69,21 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
       console.log(`Attempting WebSocket connection to ${wsUrl}`);
       
       let connectionAttempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5; // Increased from 3 to 5
       let newSocket: WebSocket | null = null;
       let connectionTimeout: number | null = null;
+      let pingInterval: number | null = null;
       
       // Create a connection attempt function
       const attemptConnection = () => {
         // Prevent excessive reconnection attempts
         if (connectionAttempts >= maxAttempts) {
           console.log(`Exceeded maximum connection attempts (${maxAttempts})`);
+          // Reset attempts after a longer delay
+          setTimeout(() => {
+            connectionAttempts = 0;
+            attemptConnection();
+          }, retryInterval * 2);
           return;
         }
         
@@ -87,7 +93,7 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
         // Create a new socket
         newSocket = new WebSocket(wsUrl);
         
-        // Set a timeout to detect connection issues
+        // Set a timeout to detect connection issues - longer timeout
         const timeoutId = window.setTimeout(() => {
           if (newSocket && newSocket.readyState !== WebSocket.OPEN) {
             console.log('WebSocket connection timeout, closing socket');
@@ -98,7 +104,7 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
               setTimeout(attemptConnection, 2000);
             }
           }
-        }, 5000); // 5 second timeout
+        }, 8000); // 8 second timeout - increased from 5
         
         // Store the timeout ID
         connectionTimeout = timeoutId;
@@ -127,6 +133,18 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
             }
           }
           
+          // Set up a ping interval to keep the connection alive
+          pingInterval = window.setInterval(() => {
+            if (newSocket && newSocket.readyState === WebSocket.OPEN) {
+              // Send a ping message to keep the connection alive
+              newSocket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+              console.log('Sent ping to server');
+            }
+          }, 20000); // Send a ping every 20 seconds
+          
+          // Reset connection attempts on successful connection
+          connectionAttempts = 0;
+          
           if (onConnect) onConnect();
         };
         
@@ -134,11 +152,19 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
           console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
           setIsConnected(false);
           
+          // Clear ping interval if it exists
+          if (pingInterval !== null) {
+            clearInterval(pingInterval);
+            pingInterval = null;
+          }
+          
           if (onDisconnect) onDisconnect();
           
           // Try again after delay, if not exceeding max attempts
           if (connectionAttempts < maxAttempts) {
-            setTimeout(attemptConnection, 2000);
+            const backoffDelay = Math.min(2000 * Math.pow(2, connectionAttempts - 1), 30000);
+            console.log(`Reconnecting in ${backoffDelay}ms (attempt ${connectionAttempts})`);
+            setTimeout(attemptConnection, backoffDelay);
           } else {
             // Attempt to reconnect after longer delay if max attempts reached
             setTimeout(() => {
@@ -217,18 +243,45 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     // Add visibility change listener to reconnect when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !isConnected) {
+        console.log('Tab became visible, attempting to reconnect WebSocket');
+        connect();
+      }
+    };
+    
+    // Add online status change listener
+    const handleOnlineStatus = () => {
+      if (navigator.onLine && !isConnected) {
+        console.log('Device came online, attempting to reconnect WebSocket');
         connect();
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnlineStatus);
     
     // Clean up
     return () => {
+      console.log('Cleaning up WebSocket connections and event listeners');
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (cleanup) cleanup();
+      window.removeEventListener('online', handleOnlineStatus);
+      
+      if (cleanup) {
+        cleanup();
+      }
+      
       if (socket) {
-        socket.close();
+        console.log('Closing WebSocket connection during cleanup');
+        // Send a clean disconnection message if possible
+        try {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'client_disconnect' }));
+          }
+        } catch (e) {
+          console.error('Error sending disconnect message:', e);
+        }
+        
+        // Close the socket with a normal closure code
+        socket.close(1000, 'Client disconnecting normally');
       }
     };
   }, [connect, isConnected, socket]);
