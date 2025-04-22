@@ -846,12 +846,18 @@ const RestaurantDashboard = () => {
                           {getStatusBadge(order.status)}
                         </div>
                         <CardDescription className="flex justify-between items-center">
-                          <span>
-                            {new Date(order.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="flex items-center">
+                              <Icons.clock className="h-3 w-3 mr-1 text-[#8B572A]" />
+                              {new Date(order.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              Order #{index + 1} in queue
+                            </span>
+                          </div>
                           <Badge variant="outline" className="font-normal">
                             {order.paymentMethod} • {order.paymentStatus === "completed" ? "Paid" : "Pending"}
                           </Badge>
