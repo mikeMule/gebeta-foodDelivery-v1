@@ -422,6 +422,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Restaurant management API endpoints
   
+  // Restaurant owners management
+  app.post("/api/restaurant-owners", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Check if user is admin
+      if (req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Only admins can create restaurant owners" });
+      }
+      
+      const { restaurantId, fullName, phoneNumber, email, username, password, userType } = req.body;
+      
+      if (!restaurantId || !fullName || !phoneNumber || !username || !password) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if restaurant exists
+      const restaurant = await storage.getRestaurant(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Create user with restaurant owner role
+      const user = await storage.createUser({
+        username,
+        password, // Note: In a real app, this should be properly hashed
+        phoneNumber,
+        fullName,
+        email: email || null,
+        userType: "restaurant_owner",
+        restaurantId,
+        restaurantName: restaurant.name,
+      });
+      
+      // Return the created user without password
+      const { password: _, ...userWithoutPassword } = user;
+      return res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating restaurant owner:", error);
+      return res.status(500).json({ message: "Failed to create restaurant owner" });
+    }
+  });
+
+  app.get("/api/restaurant/:id/owners", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Check if user is admin
+      if (req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Only admins can view restaurant owners" });
+      }
+      
+      const restaurantId = parseInt(req.params.id);
+      
+      // Check if restaurant exists
+      const restaurant = await storage.getRestaurant(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      
+      // Get all users with restaurant_owner role for this restaurant
+      const owners = await storage.getRestaurantOwners(restaurantId);
+      
+      // Remove passwords from the response
+      const safeOwners = owners.map(({ password, ...owner }) => owner);
+      
+      return res.json(safeOwners);
+    } catch (error) {
+      console.error("Error fetching restaurant owners:", error);
+      return res.status(500).json({ message: "Failed to fetch restaurant owners" });
+    }
+  });
+  
   // Restaurant authentication endpoint
   app.post("/api/restaurant/login", async (req: Request, res: Response) => {
     try {
