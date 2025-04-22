@@ -25,6 +25,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   userType,
   restaurantId
 }) => {
+  const { toast } = useToast();
+  
   const { notifications, clearNotification, clearAllNotifications, markAsRead, markAllAsRead } = useWebSocket({
     userId,
     userType,
@@ -58,8 +60,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
       }
     }
   });
-  
-  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [animating, setAnimating] = useState(false);
   

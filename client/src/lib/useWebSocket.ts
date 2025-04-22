@@ -47,19 +47,14 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
   // Connect to WebSocket
   const connect = useCallback(() => {
     try {
-      // Get the correct WebSocket URL based on the current environment
+      // Get the URL for WebSocket connection
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const hostname = window.location.host;
-      
-      // Make sure we're using the base hostname without any path segments
-      // This handles potential subdirectory deployments
-      const baseHostname = hostname.split('/')[0];
-      const wsUrl = `${protocol}//${baseHostname}/ws`;
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
       
       console.log(`Attempting WebSocket connection to ${wsUrl}`);
       
       const newSocket = new WebSocket(wsUrl);
-    
+      
       newSocket.onopen = () => {
         console.log('WebSocket connected successfully');
         setIsConnected(true);
@@ -76,13 +71,14 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
           newSocket.send(JSON.stringify(authMessage));
         }
         
-        onConnect?.();
+        if (onConnect) onConnect();
       };
       
       newSocket.onclose = (event) => {
         console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
         setIsConnected(false);
-        onDisconnect?.();
+        
+        if (onDisconnect) onDisconnect();
         
         // Attempt to reconnect after delay
         setTimeout(() => {
@@ -119,7 +115,7 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
             }
             
             // Call custom handler if provided
-            onMessage?.(data);
+            if (onMessage) onMessage(data);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -128,10 +124,9 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
       
       setSocket(newSocket);
       
-      // Clean up on unmount
       return () => {
-        if (newSocket.readyState === WebSocket.OPEN || 
-            newSocket.readyState === WebSocket.CONNECTING) {
+        if (newSocket && (newSocket.readyState === WebSocket.OPEN || 
+            newSocket.readyState === WebSocket.CONNECTING)) {
           console.log('Closing WebSocket connection');
           newSocket.close();
         }
@@ -144,13 +139,13 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
           connect();
         }
       }, retryInterval);
-      return () => {}; // Return empty cleanup function
+      return () => {}; // Empty cleanup function
     }
-  }, [userId, userType, restaurantId, onConnect, onDisconnect, onMessage, retryInterval]);
+  }, [userId, userType, restaurantId, onConnect, onDisconnect, onMessage, retryInterval, notifications]);
   
   // Connect on initial render
   useEffect(() => {
-    connect();
+    const cleanup = connect();
     
     // Add visibility change listener to reconnect when tab becomes visible
     const handleVisibilityChange = () => {
@@ -164,6 +159,7 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     // Clean up
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (cleanup) cleanup();
       if (socket) {
         socket.close();
       }
