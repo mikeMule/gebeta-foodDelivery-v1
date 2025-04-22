@@ -37,6 +37,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  deleteUser(id: number): Promise<void>;
   
   // Restaurant methods
   getRestaurant(id: number): Promise<Restaurant | undefined>;
@@ -288,6 +289,18 @@ export class DatabaseStorage implements IStorage {
       } as User;
     } catch (error) {
       console.error("Error in createUser:", error);
+      throw error;
+    }
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    try {
+      console.log(`Deleting user with ID: ${id}`);
+      // Using raw SQL to avoid field name issues
+      await db.execute(sql`DELETE FROM users WHERE id = ${id}`);
+      console.log(`User ${id} deleted successfully`);
+    } catch (error) {
+      console.error(`Error deleting user ${id}:`, error);
       throw error;
     }
   }
