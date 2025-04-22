@@ -2,10 +2,22 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+import { 
+  Card, 
+  CardContent 
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Icons } from "@/lib/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-import { fadeIn } from "@/lib/animation";
+import { fadeIn, slideUp } from "@/lib/animation";
 
 // Mock orders data - in a real app, you would fetch this from your API
 const MOCK_ORDERS = [
@@ -16,7 +28,15 @@ const MOCK_ORDERS = [
     items: 2,
     total: 370,
     status: "delivered",
-    restaurantImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150"
+    restaurantImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150",
+    orderItems: [
+      { name: "Doro Wat", quantity: 1, price: 220 },
+      { name: "Injera", quantity: 1, price: 150 }
+    ],
+    deliveryAddress: "Bole, Addis Ababa",
+    deliveryTime: "15:30",
+    deliveryFee: 50,
+    paymentMethod: "TeleBirr"
   },
   {
     id: "FD2762",
@@ -25,7 +45,15 @@ const MOCK_ORDERS = [
     items: 3,
     total: 450,
     status: "delivered",
-    restaurantImage: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=150"
+    restaurantImage: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=150",
+    orderItems: [
+      { name: "Classic Burger", quantity: 1, price: 200 },
+      { name: "Fries", quantity: 2, price: 125 }
+    ],
+    deliveryAddress: "Kazanchis, Addis Ababa",
+    deliveryTime: "19:45",
+    deliveryFee: 60,
+    paymentMethod: "Cash"
   },
   {
     id: "FD2651",
@@ -34,7 +62,57 @@ const MOCK_ORDERS = [
     items: 1,
     total: 280,
     status: "cancelled",
-    restaurantImage: "https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=150"
+    restaurantImage: "https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=150",
+    orderItems: [
+      { name: "Beyaynetu", quantity: 1, price: 280 }
+    ],
+    deliveryAddress: "Piassa, Addis Ababa",
+    deliveryTime: "13:20",
+    deliveryFee: 45,
+    paymentMethod: "TeleBirr"
+  },
+  {
+    id: "FD2987",
+    date: "2024-04-22",
+    restaurant: "Burger House",
+    items: 2,
+    total: 395,
+    status: "on-way",
+    restaurantImage: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=150",
+    orderItems: [
+      { name: "Cheese Burger", quantity: 1, price: 225 },
+      { name: "Coca Cola", quantity: 1, price: 70 }
+    ],
+    deliveryAddress: "Bole, Addis Ababa",
+    deliveryTime: "14:15",
+    deliveryFee: 100,
+    paymentMethod: "TeleBirr",
+    estimatedDeliveryTime: "15 mins",
+    deliveryPartner: {
+      name: "Dawit Haile",
+      phone: "+251-91-123-4567",
+      photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&fit=crop",
+      rating: 4.8
+    }
+  },
+  {
+    id: "FD2945",
+    date: "2024-04-22",
+    restaurant: "Gusto Restaurant",
+    items: 3,
+    total: 480,
+    status: "processing",
+    restaurantImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150",
+    orderItems: [
+      { name: "Kitfo", quantity: 1, price: 320 },
+      { name: "Tej", quantity: 1, price: 110 },
+      { name: "Tibs", quantity: 1, price: 50 }
+    ],
+    deliveryAddress: "Sarbet, Addis Ababa",
+    deliveryTime: "10:20",
+    deliveryFee: 70,
+    paymentMethod: "TeleBirr",
+    estimatedDeliveryTime: "40 mins"
   }
 ];
 

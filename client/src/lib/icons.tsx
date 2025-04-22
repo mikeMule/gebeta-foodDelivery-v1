@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Check,
+  CheckCircle,
   Flag,
   User,
   Store,
@@ -26,7 +27,20 @@ import {
   Truck,
   Package,
   Circle,
-  Utensils
+  Utensils,
+  Camera,
+  Mail,
+  Save,
+  Upload,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Shield,
+  CalendarDays,
+  LogOut,
+  DollarSign,
+  Locate
 } from "lucide-react";
 
 // Also add some custom icons that aren't in Lucide
