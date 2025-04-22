@@ -46,82 +46,106 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
   
   // Connect to WebSocket
   const connect = useCallback(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    console.log(`Connecting to WebSocket at ${wsUrl}`);
-    
-    const newSocket = new WebSocket(wsUrl);
-    
-    newSocket.onopen = () => {
-      console.log('WebSocket connected');
-      setIsConnected(true);
+    try {
+      // Get the correct WebSocket URL based on the current environment
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const hostname = window.location.host;
       
-      // Authenticate the connection
-      if (userId || userType || restaurantId) {
-        newSocket.send(JSON.stringify({
-          type: 'authenticate',
-          userId,
-          userType,
-          restaurantId
-        }));
-      }
+      // Make sure we're using the base hostname without any path segments
+      // This handles potential subdirectory deployments
+      const baseHostname = hostname.split('/')[0];
+      const wsUrl = `${protocol}//${baseHostname}/ws`;
       
-      onConnect?.();
-    };
+      console.log(`Attempting WebSocket connection to ${wsUrl}`);
+      
+      const newSocket = new WebSocket(wsUrl);
     
-    newSocket.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-      onDisconnect?.();
+      newSocket.onopen = () => {
+        console.log('WebSocket connected successfully');
+        setIsConnected(true);
+        
+        // Authenticate the connection
+        if (userId || userType || restaurantId) {
+          const authMessage = {
+            type: 'authenticate',
+            userId,
+            userType,
+            restaurantId
+          };
+          console.log('Sending authentication message:', authMessage);
+          newSocket.send(JSON.stringify(authMessage));
+        }
+        
+        onConnect?.();
+      };
       
-      // Attempt to reconnect after delay
+      newSocket.onclose = (event) => {
+        console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+        setIsConnected(false);
+        onDisconnect?.();
+        
+        // Attempt to reconnect after delay
+        setTimeout(() => {
+          if (document.visibilityState !== 'hidden') {
+            console.log('Attempting to reconnect WebSocket...');
+            connect();
+          }
+        }, retryInterval);
+      };
+      
+      newSocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      newSocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
+          
+          if (data.type === 'authentication_success') {
+            console.log('WebSocket authenticated successfully');
+          } else {
+            // For notification messages
+            setLastMessage(data);
+            
+            // Add to notifications array if it's a notification
+            if (data.type && data.title && data.message) {
+              const newNotifications = [data, ...notifications];
+              setNotifications(newNotifications);
+              
+              // Persist to localStorage
+              const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
+              localStorage.setItem(storageKey, JSON.stringify(newNotifications));
+            }
+            
+            // Call custom handler if provided
+            onMessage?.(data);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+      
+      setSocket(newSocket);
+      
+      // Clean up on unmount
+      return () => {
+        if (newSocket.readyState === WebSocket.OPEN || 
+            newSocket.readyState === WebSocket.CONNECTING) {
+          console.log('Closing WebSocket connection');
+          newSocket.close();
+        }
+      };
+    } catch (error) {
+      console.error('Error setting up WebSocket connection:', error);
+      // Try to reconnect after delay
       setTimeout(() => {
         if (document.visibilityState !== 'hidden') {
           connect();
         }
       }, retryInterval);
-    };
-    
-    newSocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    newSocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        
-        if (data.type === 'authentication_success') {
-          console.log('WebSocket authenticated successfully');
-        } else {
-          // For notification messages
-          setLastMessage(data);
-          
-          // Add to notifications array if it's a notification
-          if (data.type && data.title && data.message) {
-            const newNotifications = [data, ...notifications];
-            setNotifications(newNotifications);
-            
-            // Persist to localStorage
-            const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
-            localStorage.setItem(storageKey, JSON.stringify(newNotifications));
-          }
-          
-          // Call custom handler if provided
-          onMessage?.(data);
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
-    };
-    
-    setSocket(newSocket);
-    
-    // Clean up on unmount
-    return () => {
-      newSocket.close();
-    };
+      return () => {}; // Return empty cleanup function
+    }
   }, [userId, userType, restaurantId, onConnect, onDisconnect, onMessage, retryInterval]);
   
   // Connect on initial render
