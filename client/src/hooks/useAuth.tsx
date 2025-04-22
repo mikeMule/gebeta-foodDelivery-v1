@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 interface UserData {
+  id?: number;
+  username?: string;
   phoneNumber: string;
   location?: string;
   fullName?: string;
