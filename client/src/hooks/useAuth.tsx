@@ -9,6 +9,9 @@ interface UserData {
   idVerified?: boolean;
   userType?: string; // customer, restaurant_owner, delivery_partner, admin
   profileImage?: string;
+  // Restaurant owner specific fields
+  restaurantId?: number;
+  restaurantName?: string;
 }
 
 interface AuthContextType {
@@ -36,7 +39,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (data: UserData) => {
     setUserData(data);
+    setIsAuthenticated(true);
     localStorage.setItem('userData', JSON.stringify(data));
+    localStorage.setItem('isAuthenticated', 'true');
   };
 
   const verifyOtp = (otp: string) => {

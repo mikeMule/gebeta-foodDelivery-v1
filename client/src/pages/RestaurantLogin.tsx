@@ -55,30 +55,34 @@ const RestaurantLogin = () => {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: FormData) => {
     setIsLoading(true);
 
     try {
       // Make API call to verify credentials
-      const response = await fetch('/api/restaurant/login', {
+      const response: Response = await fetch('/api/restaurant/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         throw new Error('Login failed');
       }
 
-      const data = await response.json();
+      const responseData: any = await response.json();
+      
+      console.log('Login response:', responseData);
       
       // Update user data in Auth context
       login({
-        ...data.user,
-        restaurantId: data.restaurant.id,
-        restaurantName: data.restaurant.name
+        phoneNumber: responseData.user.phoneNumber,
+        fullName: responseData.user.fullName,
+        userType: responseData.user.userType,
+        restaurantId: responseData.restaurant.id,
+        restaurantName: responseData.restaurant.name
       });
 
       toast({
