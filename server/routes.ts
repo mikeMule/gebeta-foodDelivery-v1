@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Return the updated food item
       res.json(updatedFoodItem);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating food item:", error);
       res.status(500).json({ 
         message: "Failed to update food item", 

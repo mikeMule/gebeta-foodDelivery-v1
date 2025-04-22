@@ -47,6 +47,12 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
   // Connect to WebSocket
   const connect = useCallback(() => {
     try {
+      // Prevent multiple connection attempts if already connecting or connected
+      if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+        console.log('WebSocket already connecting or connected');
+        return () => {};
+      }
+      
       // Use either explicitly defined URL or fallback to auto-detection
       let wsUrl;
       
@@ -62,93 +68,129 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
       
       console.log(`Attempting WebSocket connection to ${wsUrl}`);
       
-      // Create connection with a longer timeout
-      const newSocket = new WebSocket(wsUrl);
+      let connectionAttempts = 0;
+      const maxAttempts = 3;
+      let newSocket: WebSocket | null = null;
+      let connectionTimeout: number | null = null;
       
-      // Set a timeout to detect connection issues
-      const connectionTimeout = setTimeout(() => {
-        if (newSocket.readyState !== WebSocket.OPEN) {
-          console.log('WebSocket connection timeout, closing socket');
-          newSocket.close();
-        }
-      }, 10000); // 10 second timeout
-      
-      newSocket.onopen = () => {
-        console.log('WebSocket connected successfully');
-        setIsConnected(true);
-        
-        // Clear the connection timeout
-        clearTimeout(connectionTimeout);
-        
-        // Authenticate the connection
-        if (userId || userType || restaurantId) {
-          const authMessage = {
-            type: 'authenticate',
-            userId,
-            userType,
-            restaurantId
-          };
-          console.log('Sending authentication message:', authMessage);
-          newSocket.send(JSON.stringify(authMessage));
+      // Create a connection attempt function
+      const attemptConnection = () => {
+        // Prevent excessive reconnection attempts
+        if (connectionAttempts >= maxAttempts) {
+          console.log(`Exceeded maximum connection attempts (${maxAttempts})`);
+          return;
         }
         
-        if (onConnect) onConnect();
-      };
-      
-      newSocket.onclose = (event) => {
-        console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
-        setIsConnected(false);
+        connectionAttempts++;
+        console.log(`WebSocket connection attempt ${connectionAttempts}/${maxAttempts}`);
         
-        if (onDisconnect) onDisconnect();
+        // Create a new socket
+        newSocket = new WebSocket(wsUrl);
         
-        // Attempt to reconnect after delay
-        setTimeout(() => {
-          if (document.visibilityState !== 'hidden') {
-            console.log('Attempting to reconnect WebSocket...');
-            connect();
-          }
-        }, retryInterval);
-      };
-      
-      newSocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-      
-      newSocket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
-          
-          if (data.type === 'authentication_success') {
-            console.log('WebSocket authenticated successfully');
-          } else {
-            // For notification messages
-            setLastMessage(data);
+        // Set a timeout to detect connection issues
+        const timeoutId = window.setTimeout(() => {
+          if (newSocket && newSocket.readyState !== WebSocket.OPEN) {
+            console.log('WebSocket connection timeout, closing socket');
+            newSocket.close();
             
-            // Add to notifications array if it's a notification
-            if (data.type && data.title && data.message) {
-              const newNotifications = [data, ...notifications];
-              setNotifications(newNotifications);
-              
-              // Persist to localStorage
-              const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
-              localStorage.setItem(storageKey, JSON.stringify(newNotifications));
+            // Try again after delay, if not exceeding max attempts
+            if (connectionAttempts < maxAttempts) {
+              setTimeout(attemptConnection, 2000);
             }
-            
-            // Call custom handler if provided
-            if (onMessage) onMessage(data);
           }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
+        }, 5000); // 5 second timeout
+        
+        // Store the timeout ID
+        connectionTimeout = timeoutId;
+      
+        // Setup event handlers for the socket
+        newSocket.onopen = () => {
+          console.log('WebSocket connected successfully');
+          setIsConnected(true);
+          
+          // Clear the connection timeout
+          if (connectionTimeout !== null) {
+            clearTimeout(connectionTimeout);
+          }
+          
+          // Authenticate the connection
+          if (userId || userType || restaurantId) {
+            const authMessage = {
+              type: 'authenticate',
+              userId,
+              userType,
+              restaurantId
+            };
+            console.log('Sending authentication message:', authMessage);
+            if (newSocket && newSocket.readyState === WebSocket.OPEN) {
+              newSocket.send(JSON.stringify(authMessage));
+            }
+          }
+          
+          if (onConnect) onConnect();
+        };
+        
+        newSocket.onclose = (event) => {
+          console.log(`WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`);
+          setIsConnected(false);
+          
+          if (onDisconnect) onDisconnect();
+          
+          // Try again after delay, if not exceeding max attempts
+          if (connectionAttempts < maxAttempts) {
+            setTimeout(attemptConnection, 2000);
+          } else {
+            // Attempt to reconnect after longer delay if max attempts reached
+            setTimeout(() => {
+              if (document.visibilityState !== 'hidden') {
+                console.log('Attempting to reconnect WebSocket after cool-down...');
+                connectionAttempts = 0; // Reset counter for next connect cycle
+                attemptConnection();
+              }
+            }, retryInterval);
+          }
+        };
+        
+        newSocket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+        
+        newSocket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data);
+            
+            if (data.type === 'authentication_success') {
+              console.log('WebSocket authenticated successfully');
+            } else {
+              // For notification messages
+              setLastMessage(data);
+              
+              // Add to notifications array if it's a notification
+              if (data.type && data.title && data.message) {
+                const newNotifications = [data, ...notifications];
+                setNotifications(newNotifications);
+                
+                // Persist to localStorage
+                const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
+                localStorage.setItem(storageKey, JSON.stringify(newNotifications));
+              }
+              
+              // Call custom handler if provided
+              if (onMessage) onMessage(data);
+            }
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
+        
+        setSocket(newSocket);
       };
       
-      setSocket(newSocket);
+      // Start the first connection attempt
+      attemptConnection();
       
       return () => {
-        // Clear the connection timeout to prevent issues
-        clearTimeout(connectionTimeout);
-        
         // Safely close the socket if it's still open or connecting
         if (newSocket && (newSocket.readyState === WebSocket.OPEN || 
             newSocket.readyState === WebSocket.CONNECTING)) {
