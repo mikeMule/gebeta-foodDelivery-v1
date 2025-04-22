@@ -9,6 +9,7 @@ import NavBar from "@/components/NavBar";
 import DeliveryMap from "@/components/DeliveryMap";
 import { Icons } from "@/lib/icons";
 import { useCart } from "@/store/CartContext";
+import { Skeleton } from "@/components/ui/skeleton";
 import { type Restaurant, type FoodItem as FoodItemType } from "@shared/schema";
 
 const RestaurantDetail = () => {
@@ -17,11 +18,11 @@ const RestaurantDetail = () => {
   const { cartItems, totalAmount } = useCart();
   const restaurantId = parseInt(params.id);
   
-  const { data: restaurant } = useQuery<Restaurant>({
+  const { data: restaurant, isLoading: restaurantLoading } = useQuery<Restaurant>({
     queryKey: [`/api/restaurants/${restaurantId}`],
   });
   
-  const { data: foodItems } = useQuery<FoodItemType[]>({
+  const { data: foodItems, isLoading: foodItemsLoading } = useQuery<FoodItemType[]>({
     queryKey: [`/api/restaurants/${restaurantId}/food-items`],
   });
 
@@ -45,6 +46,77 @@ const RestaurantDetail = () => {
     }
     foodItemsByCategory[item.category].push(item);
   });
+
+  // Loading state skeleton UI
+  if (restaurantLoading || foodItemsLoading) {
+    return (
+      <div className="min-h-screen flex flex-col pb-16">
+        <div className="relative h-64">
+          <Skeleton className="w-full h-full" />
+          <Button 
+            variant="ghost"
+            className="absolute top-4 left-4 w-10 h-10 p-0 flex items-center justify-center bg-white rounded-full shadow-md"
+            onClick={handleBackClick}
+          >
+            <Icons.chevronLeft className="text-lg" />
+          </Button>
+        </div>
+        
+        <div className="bg-white rounded-t-3xl -mt-8 relative z-10 flex-grow">
+          <div className="p-4">
+            <div className="flex justify-between items-start mb-4">
+              <Skeleton className="h-7 w-2/3" />
+              <Skeleton className="h-6 w-12 rounded" />
+            </div>
+            
+            <Skeleton className="h-4 w-1/2 mb-4" />
+            
+            <Skeleton className="h-12 w-full mb-4 rounded-lg" />
+            
+            <div className="border-t border-b border-neutral-100 py-3 mb-4">
+              <div className="flex items-center mb-2">
+                <Skeleton className="h-4 w-4 mr-2 rounded-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              <div className="flex items-center">
+                <Skeleton className="h-4 w-4 mr-2 rounded-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            </div>
+            
+            <div className="flex space-x-4 mb-6">
+              <Skeleton className="h-6 w-1/3" />
+              <Skeleton className="h-6 w-1/3" />
+              <Skeleton className="h-6 w-1/3" />
+            </div>
+            
+            <Skeleton className="h-[140px] w-full mb-6 rounded-lg" />
+            
+            <div className="border-b border-neutral-200 mb-4 pb-2 flex space-x-6">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-16" />
+            </div>
+            
+            {/* Menu item skeletons */}
+            <div className="mb-6">
+              <Skeleton className="h-6 w-1/3 mb-4" />
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex mb-4 items-center">
+                  <Skeleton className="h-20 w-20 rounded-md mr-3" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col pb-16">
