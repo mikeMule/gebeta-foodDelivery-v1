@@ -12,6 +12,289 @@ import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
+// Restaurant owner credentials form component
+function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [owners, setOwners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generatedUsername, setGeneratedUsername] = useState("");
+  const [generatedPassword, setGeneratedPassword] = useState("");
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phoneNumber: "",
+    email: "",
+  });
+
+  useEffect(() => {
+    // Fetch existing owners for this restaurant
+    fetch(`/api/restaurant/${restaurantId}/owners`)
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 404) {
+            // No owners API yet, just hide loading
+            setOwners([]);
+            setLoading(false);
+            return [];
+          }
+          throw new Error("Failed to fetch owners");
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data) {
+          setOwners(data);
+          setLoading(false);
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching owners:", error);
+        setLoading(false);
+      });
+  }, [restaurantId]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const generateCredentials = () => {
+    // Generate simple username based on restaurant ID and random number
+    const username = `restaurant${restaurantId}_${Math.floor(Math.random() * 1000)}`;
+    
+    // Generate a random password with letters, numbers, and special characters
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+
+    setGeneratedUsername(username);
+    setGeneratedPassword(password);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.fullName || !formData.phoneNumber || !generatedUsername || !generatedPassword) {
+      toast({
+        title: "Incomplete Form",
+        description: "Please fill all fields and generate credentials",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const res = await fetch('/api/restaurant-owners', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          restaurantId,
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          username: generatedUsername,
+          password: generatedPassword,
+          userType: "restaurant_owner",
+        }),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to create owner account");
+      }
+      
+      const data = await res.json();
+      
+      toast({
+        title: "Owner Account Created",
+        description: "Restaurant owner credentials have been created successfully",
+      });
+      
+      // Reset form
+      setFormData({
+        fullName: "",
+        phoneNumber: "",
+        email: "",
+      });
+      setGeneratedUsername("");
+      setGeneratedPassword("");
+      
+      // Refresh owners list
+      setOwners(prev => [...prev, data]);
+      
+    } catch (error) {
+      console.error("Error creating owner account:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create owner account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="bg-white border-amber-200">
+      <CardHeader>
+        <CardTitle className="text-xl text-amber-900">Restaurant Owner Credentials</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Owner Full Name</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                className="border-amber-200"
+                placeholder="e.g. John Doe"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Input
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="border-amber-200"
+                placeholder="e.g. +251911234567"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="email">Email Address (Optional)</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="border-amber-200"
+                placeholder="e.g. owner@restaurant.com"
+              />
+            </div>
+          </div>
+          
+          <div className="border border-amber-100 rounded-md p-4 bg-amber-50">
+            <h3 className="text-md font-semibold text-amber-900 mb-2">Login Credentials</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  value={generatedUsername}
+                  readOnly
+                  className="bg-amber-50 border-amber-200"
+                  placeholder="Click generate to create username"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="text"
+                  value={generatedPassword}
+                  readOnly
+                  className="bg-amber-50 border-amber-200"
+                  placeholder="Click generate to create password"
+                />
+              </div>
+            </div>
+            
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="mt-4 border-amber-300 text-amber-800 hover:bg-amber-100"
+              onClick={generateCredentials}
+            >
+              Generate Credentials
+            </Button>
+          </div>
+          
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              className="bg-amber-700 hover:bg-amber-800"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Owner Account"
+              )}
+            </Button>
+          </div>
+        </form>
+        
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-amber-900 mb-4">
+            Existing Restaurant Owners
+          </h3>
+          
+          {loading ? (
+            <div className="py-8 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-amber-700" />
+            </div>
+          ) : owners.length === 0 ? (
+            <div className="text-center py-6 bg-amber-50 rounded-md border border-amber-100">
+              <p className="text-amber-700">No restaurant owners found. Create one using the form above.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {owners.map((owner) => (
+                <div 
+                  key={owner.id} 
+                  className="p-4 border border-amber-200 rounded-md bg-white flex justify-between items-center"
+                >
+                  <div>
+                    <h4 className="font-medium text-amber-900">{owner.fullName}</h4>
+                    <div className="text-sm text-amber-700 mt-1">
+                      <span className="font-medium">Username:</span> {owner.username}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {owner.phoneNumber}{owner.email ? ` • ${owner.email}` : ''}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-amber-500 border-amber-200 hover:bg-amber-50"
+                    >
+                      Reset Password
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminRestaurantForm() {
   const { id } = useParams();
   const isNew = id === "new";
@@ -263,8 +546,9 @@ export default function AdminRestaurantForm() {
 
           {!isNew && (
             <Tabs defaultValue="details" className="mb-8">
-              <TabsList className="grid w-full grid-cols-2 bg-amber-100">
+              <TabsList className="grid w-full grid-cols-3 bg-amber-100">
                 <TabsTrigger value="details">Restaurant Details</TabsTrigger>
+                <TabsTrigger value="credentials">Owner Credentials</TabsTrigger>
                 <TabsTrigger value="menu">Menu Items</TabsTrigger>
               </TabsList>
               
@@ -276,6 +560,10 @@ export default function AdminRestaurantForm() {
                   isSubmitting={isSubmitting}
                   isNew={isNew}
                 />
+              </TabsContent>
+              
+              <TabsContent value="credentials">
+                <OwnerCredentialsForm restaurantId={parseInt(id as string)} />
               </TabsContent>
               
               <TabsContent value="menu">
