@@ -10,16 +10,21 @@ import { Label } from "@/components/ui/label";
 import { InsertRestaurant, Restaurant } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 // Restaurant owner credentials form component
 function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [owners, setOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatedUsername, setGeneratedUsername] = useState("");
   const [generatedPassword, setGeneratedPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
@@ -66,6 +71,30 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
 
     setGeneratedUsername(username);
     setGeneratedPassword(password);
+  };
+  
+  const handleDeleteOwner = async (ownerId: number) => {
+    setIsDeleting(true);
+    try {
+      await apiRequest("DELETE", `/api/restaurant-owners/${ownerId}`, {});
+      
+      // Remove the owner from the local state
+      setOwners(prev => prev.filter(owner => owner.id !== ownerId));
+      
+      toast({
+        title: "Success",
+        description: "Restaurant owner deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting owner:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete restaurant owner",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,15 +224,26 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
               
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="text"
-                  value={generatedPassword}
-                  readOnly
-                  className="bg-amber-50 border-amber-200"
-                  placeholder="Click generate to create password"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={generatedPassword}
+                    readOnly
+                    className="bg-amber-50 border-amber-200 pr-10"
+                    placeholder="Click generate to create password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 text-amber-600 hover:bg-transparent hover:text-amber-800"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </div>
             
@@ -265,6 +305,40 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-500 border-red-200 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the restaurant owner account for {owner.fullName}.
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={() => handleDeleteOwner(owner.id)}
+                          >
+                            {isDeleting ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deleting...</>
+                            ) : (
+                              "Delete Owner"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    
                     <Button 
                       variant="outline" 
                       size="sm" 

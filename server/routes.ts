@@ -575,6 +575,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete restaurant owner
+  app.delete("/api/restaurant-owners/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Check if user is admin
+      if (req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Only admins can delete restaurant owners" });
+      }
+      
+      const ownerId = parseInt(req.params.id);
+      
+      // Check if user exists
+      const owner = await storage.getUser(ownerId);
+      if (!owner) {
+        return res.status(404).json({ message: "Owner not found" });
+      }
+      
+      // Check if user is a restaurant owner
+      if (owner.userType !== "restaurant_owner") {
+        return res.status(400).json({ message: "User is not a restaurant owner" });
+      }
+      
+      // Delete the user
+      await storage.deleteUser(ownerId);
+      
+      res.status(200).json({ message: "Restaurant owner deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting restaurant owner:", error);
+      return res.status(500).json({ message: "Failed to delete restaurant owner" });
+    }
+  });
+  
   // Restaurant authentication endpoint
   app.post("/api/restaurant/login", async (req: Request, res: Response) => {
     try {
