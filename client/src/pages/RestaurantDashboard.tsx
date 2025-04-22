@@ -603,41 +603,99 @@ const RestaurantDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
+    <div className="min-h-screen bg-[#FFF9F1]">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Icons.store className="h-8 w-8 text-[#8B572A]" />
+      <header className="bg-gradient-to-r from-[#8B572A] to-[#4F2D1F] shadow-md">
+        <div className="container px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="bg-white p-2 rounded-full shadow-sm">
+              <Icons.store className="h-7 w-7 text-[#8B572A]" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold text-[#4F2D1F]">{userData?.restaurantName || 'Restaurant'} Dashboard</h1>
-              <p className="text-sm text-[#8B572A]">Welcome, {userData?.fullName || "Restaurant Owner"}</p>
+              <h1 className="text-xl font-bold text-white">{userData?.restaurantName || 'Restaurant'}</h1>
+              <p className="text-sm text-amber-200">Welcome, {userData?.fullName || "Restaurant Owner"}</p>
             </div>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="text-[#8B572A]">
-            <Icons.logOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button variant="outline" onClick={handleLogout} className="bg-transparent text-white border-white hover:bg-white/10">
+              <Icons.logOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
       
+      {/* Stats summary section */}
+      <div className="bg-white border-b border-amber-100 shadow-sm">
+        <div className="container px-4 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
+              <CardContent className="p-4 flex items-center">
+                <div className="bg-amber-100 rounded-full p-3 mr-4">
+                  <Icons.clipboardList className="h-6 w-6 text-amber-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-amber-700">Today's Orders</p>
+                  <h3 className="text-2xl font-bold text-amber-900">{ordersData?.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).length || 0}</h3>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
+              <CardContent className="p-4 flex items-center">
+                <div className="bg-amber-100 rounded-full p-3 mr-4">
+                  <Icons.dollarSign className="h-6 w-6 text-amber-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-amber-700">Today's Revenue</p>
+                  <h3 className="text-2xl font-bold text-amber-900">
+                    {new Intl.NumberFormat('en-ET', { style: 'currency', currency: 'ETB' }).format(
+                      ordersData?.filter(o => 
+                        new Date(o.createdAt).toDateString() === new Date().toDateString() &&
+                        o.status !== 'cancelled'
+                      ).reduce((sum, order) => sum + order.totalAmount, 0) || 0
+                    )}
+                  </h3>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
+              <CardContent className="p-4 flex items-center">
+                <div className="bg-amber-100 rounded-full p-3 mr-4">
+                  <Icons.truck className="h-6 w-6 text-amber-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-amber-700">Pending Deliveries</p>
+                  <h3 className="text-2xl font-bold text-amber-900">
+                    {ordersData?.filter(o => 
+                      o.status === 'ready_for_pickup' || o.status === 'out_for_delivery'
+                    ).length || 0}
+                  </h3>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+      
       {/* Main content */}
-      <main className="container py-6">
+      <main className="container px-4 py-6">
         <Tabs defaultValue="orders" className="space-y-4">
-          <TabsList className="bg-white border">
-            <TabsTrigger value="orders" className="data-[state=active]:bg-[#E5A764] data-[state=active]:text-white">
+          <TabsList className="bg-white border border-amber-200 p-1 rounded-lg">
+            <TabsTrigger value="orders" className="data-[state=active]:bg-[#8B572A] data-[state=active]:text-white rounded-md">
               <Icons.clipboardList className="mr-2 h-4 w-4" />
               Orders
             </TabsTrigger>
-            <TabsTrigger value="menu" className="data-[state=active]:bg-[#E5A764] data-[state=active]:text-white">
+            <TabsTrigger value="menu" className="data-[state=active]:bg-[#8B572A] data-[state=active]:text-white rounded-md">
               <Icons.menu className="mr-2 h-4 w-4" />
               Menu
             </TabsTrigger>
-            <TabsTrigger value="delivery" className="data-[state=active]:bg-[#E5A764] data-[state=active]:text-white">
+            <TabsTrigger value="delivery" className="data-[state=active]:bg-[#8B572A] data-[state=active]:text-white rounded-md">
               <Icons.truck className="mr-2 h-4 w-4" />
               Delivery Partners
             </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-[#E5A764] data-[state=active]:text-white">
+            <TabsTrigger value="settings" className="data-[state=active]:bg-[#8B572A] data-[state=active]:text-white rounded-md">
               <Icons.settings className="mr-2 h-4 w-4" />
               Settings
             </TabsTrigger>
