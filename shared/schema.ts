@@ -101,9 +101,9 @@ export const orders = pgTable("orders", {
   totalAmount: integer("total_amount").notNull(),
   deliveryFee: integer("delivery_fee").notNull(),
   serviceFee: integer("service_fee").notNull(),
-  restaurantCommissionAmount: integer("restaurant_commission_amount"), // calculated amount
-  deliveryPartnerAmount: integer("delivery_partner_amount"), // calculated amount
-  platformAmount: integer("platform_amount"), // calculated amount
+  restaurantCommissionAmount: integer("restaurant_commission_amount").default(0), // calculated amount
+  deliveryPartnerAmount: integer("delivery_partner_amount").default(0), // calculated amount
+  platformAmount: integer("platform_amount").default(0), // calculated amount
   instructions: text("instructions"),
   paymentMethod: text("payment_method").notNull(),
   paymentStatus: text("payment_status").notNull().default("pending"),
@@ -112,6 +112,9 @@ export const orders = pgTable("orders", {
   deliveryAddress: text("delivery_address").notNull(),
   deliveryLatitude: doublePrecision("delivery_latitude"),
   deliveryLongitude: doublePrecision("delivery_longitude"),
+  isRead: boolean("is_read").default(false), // For notification system
+  needsApproval: boolean("needs_approval").default(true), // For admin approval
+  adminApproved: boolean("admin_approved").default(false), // For admin approval status
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 });

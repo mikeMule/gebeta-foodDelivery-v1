@@ -427,7 +427,53 @@ export class DatabaseStorage implements IStorage {
   // New methods for Restaurant Management
   
   async getOrdersByRestaurant(restaurantId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.restaurantId, restaurantId));
+    try {
+      // Use raw SQL to avoid column mismatch issues
+      const query = sql`
+        SELECT * FROM orders 
+        WHERE restaurant_id = ${restaurantId}
+        ORDER BY created_at DESC
+      `;
+      
+      const result = await db.execute(query);
+      
+      if (!result.rows || result.rows.length === 0) {
+        return [];
+      }
+      
+      // Map database rows to Order objects
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          userId: row.user_id,
+          restaurantId: row.restaurant_id,
+          deliveryPartnerId: row.delivery_partner_id,
+          status: row.status,
+          totalAmount: row.total_amount,
+          deliveryFee: row.delivery_fee,
+          serviceFee: row.service_fee || 0,
+          restaurantCommissionAmount: row.restaurant_commission_amount || 0,
+          deliveryPartnerAmount: row.delivery_partner_amount || 0,
+          platformAmount: row.platform_amount || 0,
+          instructions: row.instructions,
+          paymentMethod: row.payment_method,
+          paymentStatus: row.payment_status,
+          estimatedDeliveryTime: row.estimated_delivery_time,
+          actualDeliveryTime: row.actual_delivery_time,
+          deliveryAddress: row.delivery_address,
+          deliveryLatitude: row.delivery_latitude,
+          deliveryLongitude: row.delivery_longitude,
+          isRead: row.is_read || false,
+          needsApproval: row.needs_approval || true,
+          adminApproved: row.admin_approved || false,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        } as Order;
+      });
+    } catch (error) {
+      console.error("Error fetching restaurant orders:", error);
+      return [];
+    }
   }
   
   async updateOrderStatus(id: number, status: string): Promise<Order> {
