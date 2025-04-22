@@ -83,10 +83,16 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
     setIsSubmitting(true);
     
     try {
-      const res = await apiRequest('POST', '/api/restaurant-owners', {
+      console.log("Creating restaurant owner with data:", {
         restaurantId,
         fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
+        phoneNumber: formData.phoneNumber
+      });
+      
+      const res = await apiRequest('POST', '/api/restaurant-owners', {
+        restaurantId,
+        fullName: formData.fullName, // Server will handle mapping to full_name
+        phoneNumber: formData.phoneNumber, // Server will handle mapping to phone_number
         email: formData.email,
         username: generatedUsername,
         password: generatedPassword,
