@@ -939,6 +939,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Unauthorized to update order status" });
       }
       
+      // For restaurant owners, ensure they only update orders for their own restaurant
+      if (req.user?.userType === "restaurant_owner") {
+        // Get the user's restaurant ID from session
+        const userRestaurantId = req.session?.restaurantId;
+        
+        // If user is trying to update an order for a restaurant they don't own
+        if (userRestaurantId && userRestaurantId !== order.restaurantId) {
+          return res.status(403).json({ 
+            message: "Unauthorized: You can only update orders for your own restaurant" 
+          });
+        }
+      }
+      
       // Update the order status
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
       
@@ -1006,6 +1019,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user is authorized to get delivery partners for this order
       if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
         return res.status(403).json({ message: "Unauthorized to get delivery partners" });
+      }
+      
+      // For restaurant owners, ensure they only get delivery partners for their own restaurant's orders
+      if (req.user?.userType === "restaurant_owner") {
+        // Get the user's restaurant ID from session
+        const userRestaurantId = req.session?.restaurantId;
+        
+        // If user is trying to get delivery partners for an order from a restaurant they don't own
+        if (userRestaurantId && userRestaurantId !== order.restaurantId) {
+          return res.status(403).json({ 
+            message: "Unauthorized: You can only access orders for your own restaurant" 
+          });
+        }
       }
       
       // Get the restaurant coordinates
@@ -1078,6 +1104,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user is authorized to assign delivery partners
       if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
         return res.status(403).json({ message: "Unauthorized to assign delivery partners" });
+      }
+      
+      // For restaurant owners, ensure they only assign delivery partners to their own restaurant's orders
+      if (req.user?.userType === "restaurant_owner") {
+        // Get the user's restaurant ID from session
+        const userRestaurantId = req.session?.restaurantId;
+        
+        // If user is trying to assign delivery partners to an order from a restaurant they don't own
+        if (userRestaurantId && userRestaurantId !== order.restaurantId) {
+          return res.status(403).json({ 
+            message: "Unauthorized: You can only manage orders for your own restaurant" 
+          });
+        }
       }
       
       // Assign the delivery partner and update order status
@@ -1202,6 +1241,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user is authorized to access this restaurant's stats
       if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
         return res.status(403).json({ message: "Unauthorized to access restaurant statistics" });
+      }
+      
+      // For restaurant owners, ensure they only access stats for their own restaurant
+      if (req.user?.userType === "restaurant_owner") {
+        // Get the user's restaurant ID from session
+        const userRestaurantId = req.session?.restaurantId;
+        
+        // If user is trying to access stats for a restaurant they don't own
+        if (userRestaurantId && userRestaurantId !== restaurantId) {
+          return res.status(403).json({ 
+            message: "Unauthorized: You can only access statistics for your own restaurant" 
+          });
+        }
       }
       
       // Get all orders for this restaurant
