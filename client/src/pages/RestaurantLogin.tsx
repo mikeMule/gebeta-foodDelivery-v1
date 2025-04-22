@@ -50,43 +50,49 @@ const RestaurantLogin = () => {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      username: "abc",
+      password: "abc@123",
     },
   });
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    
+
     try {
-      // In a real app, you would make an API call to verify credentials
-      // For now, we'll simulate a login with a mock restaurant owner
-      setTimeout(() => {
-        // Mock restaurant owner data
-        const mockRestaurantOwner = {
-          phoneNumber: "0911223344",
-          fullName: "Restaurant Manager",
-          userType: "restaurant_owner",
-          email: "restaurant@gebeta.com",
-          restaurantId: 1 // link to the specific restaurant
-        };
-        
-        login(mockRestaurantOwner);
-        
-        toast({
-          title: "Login successful",
-          description: "Welcome to your restaurant dashboard",
-        });
-        
-        setLocation("/restaurant-dashboard");
-        setIsLoading(false);
-      }, 1000);
+      // Make API call to verify credentials
+      const response = await fetch('/api/restaurant/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const restaurantOwner = await response.json();
+      
+      // Update user data in Auth context
+      login({
+        ...restaurantOwner,
+        userType: "restaurant_owner",
+      });
+
+      toast({
+        title: "Login successful",
+        description: "Welcome to your restaurant dashboard",
+      });
+
+      setLocation("/restaurant-dashboard");
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Invalid username or password",
+        description: "Invalid username or password. Please try again.",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -111,7 +117,10 @@ const RestaurantLogin = () => {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <FormField
                   control={form.control}
                   name="username"
@@ -119,9 +128,9 @@ const RestaurantLogin = () => {
                     <FormItem>
                       <FormLabel className="text-[#8B572A]">Username</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Enter your username" 
-                          {...field} 
+                        <Input
+                          placeholder="Enter your username"
+                          {...field}
                           className="border-[#E5A764] focus:ring-[#8B572A]"
                         />
                       </FormControl>
@@ -169,9 +178,9 @@ const RestaurantLogin = () => {
               Need help? Contact our support team.
             </div>
             <div className="flex justify-center items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setLocation("/")}
                 className="text-[#8B572A]"
               >
@@ -191,7 +200,9 @@ const RestaurantLogin = () => {
                 Gebeta Restaurant Portal
               </h2>
               <p className="opacity-90 mb-6">
-                Manage your restaurant operations efficiently with our easy-to-use dashboard. Handle orders, update menu items, and track deliveries in real-time.
+                Manage your restaurant operations efficiently with our
+                easy-to-use dashboard. Handle orders, update menu items, and
+                track deliveries in real-time.
               </p>
               <ul className="space-y-2">
                 {[
@@ -199,7 +210,7 @@ const RestaurantLogin = () => {
                   "Track order status in real-time",
                   "Manage your menu items",
                   "View earnings and reports",
-                  "First come, first serve order management"
+                  "First come, first serve order management",
                 ].map((feature, index) => (
                   <li key={index} className="flex items-start">
                     <Icons.check className="h-5 w-5 mr-2 text-[#E5A764]" />
