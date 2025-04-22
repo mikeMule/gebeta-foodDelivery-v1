@@ -40,7 +40,10 @@ import {
   CalendarDays,
   LogOut,
   DollarSign,
-  Locate
+  Locate,
+  Pencil,
+  Settings,
+  ClipboardList
 } from "lucide-react";
 
 // Also add some custom icons that aren't in Lucide
@@ -141,6 +144,9 @@ export const Icons = {
   logOut: LogOut,
   dollarSign: DollarSign,
   locate: Locate,
+  pencil: Pencil,
+  settings: Settings,
+  clipboardList: ClipboardList,
   scan: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M3 7V5a2 2 0 0 1 2-2h2" />

@@ -18,6 +18,8 @@ import MyOrders from "@/pages/MyOrders";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminRestaurantForm from "@/pages/AdminRestaurantForm";
+import RestaurantLogin from "@/pages/RestaurantLogin";
+import RestaurantDashboard from "@/pages/RestaurantDashboard";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
@@ -59,7 +61,9 @@ function App() {
            location !== "/otp-verification" &&
            location !== "/order-success" &&
            !location.startsWith("/order-tracking") &&
-           !location.startsWith("/admin"); // Hide navbar on admin pages
+           !location.startsWith("/admin") && // Hide navbar on admin pages
+           !location.startsWith("/restaurant-login") && // Hide navbar on restaurant login
+           !location.startsWith("/restaurant-dashboard"); // Hide navbar on restaurant dashboard
   };
 
   return (
@@ -89,6 +93,10 @@ function App() {
                     <Route path="/admin/dashboard" component={AdminDashboard} />
                     <Route path="/admin/restaurant/:id" component={AdminRestaurantForm} />
                     
+                    {/* Restaurant Management routes */}
+                    <Route path="/restaurant-login" component={RestaurantLogin} />
+                    <Route path="/restaurant-dashboard" component={RestaurantDashboard} />
+                    
                     {/* Special routes for handling redirects */}
                     <Route path="/splash-redirect" component={RedirectHandler} />
                     <Route path="/" component={RedirectHandler} />
@@ -113,8 +121,14 @@ function RedirectHandler() {
   useEffect(() => {
     console.log("RedirectHandler - Auth status:", isAuthenticated, "at location:", location);
     
-    // Don't redirect if already on home, login, or admin pages
-    if (location === "/home" || location === "/login" || location.startsWith('/admin')) {
+    // Don't redirect if already on home, login, admin, or restaurant pages
+    if (
+      location === "/home" || 
+      location === "/login" || 
+      location.startsWith('/admin') ||
+      location.startsWith('/restaurant-login') ||
+      location.startsWith('/restaurant-dashboard')
+    ) {
       console.log("Already on a valid route, no need to redirect");
       return;
     }
