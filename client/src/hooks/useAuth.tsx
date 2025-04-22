@@ -8,6 +8,7 @@ interface UserData {
   idNumber?: string;
   idVerified?: boolean;
   userType?: string; // customer, restaurant_owner, delivery_partner, admin
+  profileImage?: string;
 }
 
 interface AuthContextType {
