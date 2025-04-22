@@ -543,11 +543,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // In a real app, you would compare passwords securely here
         
         // Return restaurant data
-        const restaurantId = 1; // In a real app, this would be fetched from a restaurant_owners table
-        const restaurant = await storage.getRestaurant(restaurantId);
+        const defaultRestaurantId = 1; // In a real app, this would be fetched from a restaurant_owners table
+        let restaurant = await storage.getRestaurant(defaultRestaurantId);
         
         if (!restaurant) {
           return res.status(404).json({ message: "Restaurant not found" });
+        }
+        
+        // Extract restaurant data from user metadata if available
+        let userRestaurantId = restaurant.id;
+        let restaurantName = restaurant.name;
+        
+        try {
+          if (user.metadata) {
+            const metadata = JSON.parse(user.metadata);
+            if (metadata.restaurantId) {
+              restaurantId = metadata.restaurantId;
+              // If the restaurant ID is different from the default one, fetch the correct restaurant
+              if (restaurantId !== restaurant.id) {
+                const userRestaurant = await storage.getRestaurant(restaurantId);
+                if (userRestaurant) {
+                  restaurant = userRestaurant;
+                  restaurantName = restaurant.name;
+                }
+              }
+            }
+            if (metadata.restaurantName) {
+              restaurantName = metadata.restaurantName;
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing user metadata:", error);
         }
         
         return res.status(200).json({
@@ -557,7 +583,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             phoneNumber: user.phoneNumber,
             fullName: user.fullName,
             email: user.email,
-            userType: user.userType
+            userType: user.userType,
+            restaurantId,
+            restaurantName
           },
           restaurant: {
             id: restaurant.id,

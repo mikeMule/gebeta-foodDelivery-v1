@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   idNumber: text("id_number"),
   idVerified: boolean("id_verified").default(false),
   userType: text("user_type").notNull().default("customer"), // customer, restaurant_owner, delivery_partner, admin
+  metadata: text("metadata").notNull().default("{}"), // JSON field for additional data like restaurantId, restaurantName
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -26,6 +27,12 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   idNumber: true,
   userType: true,
+  metadata: true,
+})
+.extend({
+  // These fields are stored in the metadata JSON field but exposed as top-level properties
+  restaurantId: z.number().optional(),
+  restaurantName: z.string().optional(),
 });
 
 // Restaurant table
@@ -106,6 +113,7 @@ export const orders = pgTable("orders", {
   deliveryLatitude: doublePrecision("delivery_latitude"),
   deliveryLongitude: doublePrecision("delivery_longitude"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).pick({

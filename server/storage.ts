@@ -31,6 +31,7 @@ export interface IStorage {
   getAllRestaurants(): Promise<Restaurant[]>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
   updateRestaurant(id: number, restaurant: Partial<InsertRestaurant>): Promise<Restaurant>;
+  getRestaurantOwners(restaurantId: number): Promise<User[]>;
   
   // Food item methods
   getFoodItem(id: number): Promise<FoodItem | undefined>;
@@ -96,10 +97,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Handle restaurant owner metadata if provided
+    let userData = { ...insertUser };
+    
+    // Extract restaurantId and restaurantName if provided and store in metadata
+    if (userData.restaurantId || userData.restaurantName) {
+      const metadata: any = { 
+        restaurantId: userData.restaurantId,
+        restaurantName: userData.restaurantName
+      };
+      
+      // Set the metadata field
+      userData.metadata = JSON.stringify(metadata);
+      
+      // Remove the extra fields that are not in the users table schema
+      delete (userData as any).restaurantId;
+      delete (userData as any).restaurantName;
+    }
+    
     const result = await db.insert(users).values({
-      ...insertUser,
+      ...userData,
       createdAt: new Date()
     }).returning();
+    
     return result[0];
   }
   
@@ -125,6 +145,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(restaurants.id, id))
       .returning();
     return result[0];
+  }
+  
+  async getRestaurantOwners(restaurantId: number): Promise<User[]> {
+    // Get all users with type "restaurant_owner" and matching restaurantId
+    return await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.userType, "restaurant_owner"),
+          // Note: In a production app, we would have a proper relationship table or column
+          // We're using a string comparison here as a simplified approach
+          sql`CAST(${users.metadata}->>'restaurantId' AS INTEGER) = ${restaurantId}`
+        )
+      );
   }
   
   // Food item methods
