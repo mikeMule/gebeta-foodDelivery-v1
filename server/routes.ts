@@ -5,6 +5,7 @@ import { z } from "zod";
 import { insertOrderSchema, insertReviewSchema, User } from "@shared/schema";
 import { setupAuth } from "./auth";
 import session from 'express-session';
+import { setupWebSocketServer, sendNotification } from "./websocket";
 
 // Extend Express.Session and SessionData
 declare module 'express-session' {
@@ -90,6 +91,12 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
+  
+  // Create the HTTP server
+  const httpServer = createServer(app);
+  
+  // Set up WebSocket server
+  setupWebSocketServer(httpServer);
 
   // Helper function to calculate distance using Haversine formula
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -248,6 +255,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
+      
+      // Get restaurant information for the notification
+      const restaurant = await storage.getRestaurant(order.restaurantId);
+      
+      // Send WebSocket notification to restaurant owners about the new order
+      sendNotification({
+        type: 'new_order',
+        title: 'New Order Received',
+        message: `A new order #${order.id} has been placed for ${restaurant?.name}`,
+        data: {
+          orderId: order.id,
+          totalAmount: order.totalAmount,
+          items: items.length,
+          timestamp: new Date().toISOString()
+        }
+      }, {
+        restaurantId: order.restaurantId,
+        userType: 'restaurant_owner'
+      });
       
       res.status(201).json(order);
     } catch (error) {
@@ -1037,6 +1063,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }
