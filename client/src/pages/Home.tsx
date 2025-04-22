@@ -226,12 +226,6 @@ const Home = () => {
                 </button>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              className="w-9 h-9 p-0 rounded-full bg-[#E5A764]/10 text-[#8B572A]"
-            >
-              <Icons.user />
-            </Button>
           </div>
         </div>
 
