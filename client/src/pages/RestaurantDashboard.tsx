@@ -840,76 +840,103 @@ const RestaurantDashboard = () => {
       
       {/* Assign Delivery Partner Dialog */}
       <Dialog open={assignDeliveryDialogOpen} onOpenChange={setAssignDeliveryDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
-            <DialogTitle>Assign Delivery Partner</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#4F2D1F]">Assign Delivery Partner</DialogTitle>
+            <DialogDescription className="text-[#8B572A]">
               Select a delivery partner for order #{selectedOrderId}
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[400px] pr-4">
-            <div className="space-y-4">
-              {MOCK_DELIVERY_PARTNERS.map(partner => (
-                <div 
-                  key={partner.id}
-                  className={`p-4 border rounded-md flex items-center space-x-3 cursor-pointer transition-colors
-                    ${selectedDeliveryPartnerId === partner.id 
-                      ? 'border-[#8B572A] bg-[#F9F5F0]' 
-                      : 'border-gray-200 hover:bg-[#F9F5F0]/50'}`}
-                  onClick={() => setSelectedDeliveryPartnerId(partner.id)}
-                >
-                  <div className="relative">
-                    <img 
-                      src={partner.photo}
-                      alt={partner.name}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                    {selectedDeliveryPartnerId === partner.id && (
-                      <div className="absolute -bottom-1 -right-1 bg-[#8B572A] text-white rounded-full p-0.5">
-                        <Icons.check className="h-3 w-3" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-[#4F2D1F]">{partner.name}</h4>
-                    <div className="flex items-center text-sm text-[#8B572A]">
-                      <Icons.star className="h-3.5 w-3.5 text-yellow-500 mr-1" />
-                      {partner.rating} • {partner.vehicleType} • {partner.distance} km away
-                    </div>
-                  </div>
-                  <Badge 
-                    variant="outline" 
-                    className={partner.currentOrders === 0 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-yellow-100 text-yellow-700"
-                    }
-                  >
-                    {partner.currentOrders === 0 ? "Available" : `${partner.currentOrders} order(s)`}
-                  </Badge>
-                </div>
-              ))}
+          {deliveryPartnersLoading ? (
+            <div className="flex justify-center items-center h-60">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B572A]"></div>
             </div>
-          </ScrollArea>
+          ) : deliveryPartnersError ? (
+            <div className="text-center py-10 text-red-500">
+              <Icons.alertCircle className="h-10 w-10 mx-auto mb-2" />
+              <p>Error loading delivery partners</p>
+            </div>
+          ) : deliveryPartners.length === 0 ? (
+            <div className="text-center py-10 text-[#8B572A]">
+              <Icons.userX className="h-10 w-10 mx-auto mb-2" />
+              <p>No delivery partners available</p>
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[400px] pr-4">
+              <div className="space-y-4">
+                {deliveryPartners.map((partner: any) => (
+                  <div 
+                    key={partner.id}
+                    className={`p-4 border rounded-md flex items-center space-x-3 cursor-pointer transition-colors
+                      ${selectedDeliveryPartnerId === partner.id 
+                        ? 'border-[#8B572A] bg-[#F9F5F0]' 
+                        : 'border-gray-200 hover:bg-[#F9F5F0]/50'}`}
+                    onClick={() => setSelectedDeliveryPartnerId(partner.id)}
+                  >
+                    <div className="relative">
+                      <div className="h-12 w-12 rounded-full bg-[#E5A764] flex items-center justify-center text-white">
+                        {partner.user?.fullName?.charAt(0) || "D"}
+                      </div>
+                      {selectedDeliveryPartnerId === partner.id && (
+                        <div className="absolute -bottom-1 -right-1 bg-[#8B572A] text-white rounded-full p-0.5">
+                          <Icons.check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-[#4F2D1F]">{partner.user?.fullName || "Delivery Partner"}</h4>
+                      <div className="flex items-center text-sm text-[#8B572A]">
+                        <Icons.star className="h-3.5 w-3.5 text-yellow-500 mr-1" />
+                        {partner.rating} • {partner.vehicleType} • {partner.distance?.toFixed(1)} km away
+                      </div>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={partner.activeOrderCount === 0 
+                        ? "bg-green-100 text-green-700" 
+                        : "bg-yellow-100 text-yellow-700"
+                      }
+                    >
+                      {partner.activeOrderCount === 0 ? "Available" : `${partner.activeOrderCount} order(s)`}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
           
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setAssignDeliveryDialogOpen(false)}
+              onClick={() => {
+                setAssignDeliveryDialogOpen(false);
+                setSelectedDeliveryPartnerId(null);
+              }}
+              className="border-[#8B572A] text-[#8B572A]"
             >
               Cancel
             </Button>
             <Button 
               className="bg-[#8B572A] hover:bg-[#4F2D1F]"
-              disabled={!selectedDeliveryPartnerId}
+              disabled={!selectedDeliveryPartnerId || assignDeliveryMutation.isPending}
               onClick={() => {
                 if (selectedDeliveryPartnerId && selectedOrderId) {
                   assignDeliveryPartner(selectedOrderId, selectedDeliveryPartnerId);
                 }
               }}
             >
-              <Icons.bike className="mr-2 h-4 w-4" />
-              Assign Partner
+              {assignDeliveryMutation.isPending ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
+                  Assigning...
+                </>
+              ) : (
+                <>
+                  <Icons.bike className="mr-2 h-4 w-4" />
+                  Assign Partner
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

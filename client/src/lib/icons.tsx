@@ -43,7 +43,9 @@ import {
   Locate,
   Pencil,
   Settings,
-  ClipboardList
+  ClipboardList,
+  AlertCircle,
+  UserX
 } from "lucide-react";
 
 // Also add some custom icons that aren't in Lucide
@@ -147,6 +149,8 @@ export const Icons = {
   pencil: Pencil,
   settings: Settings,
   clipboardList: ClipboardList,
+  alertCircle: AlertCircle,
+  userX: UserX,
   scan: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M3 7V5a2 2 0 0 1 2-2h2" />
