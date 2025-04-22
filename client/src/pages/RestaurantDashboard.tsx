@@ -550,7 +550,7 @@ const RestaurantDashboard = () => {
     return (
       item.name.toLowerCase().includes(query) ||
       item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
+      (item.category && item.category.toLowerCase().includes(query))
     );
   });
   
@@ -721,7 +721,7 @@ const RestaurantDashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-amber-700">Today's Orders</p>
-                  <h3 className="text-2xl font-bold text-amber-900">{ordersData?.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).length || 0}</h3>
+                  <h3 className="text-2xl font-bold text-amber-900">{ordersData?.filter((o: OrderType) => new Date(o.createdAt).toDateString() === new Date().toDateString()).length || 0}</h3>
                 </div>
               </CardContent>
             </Card>
@@ -735,10 +735,10 @@ const RestaurantDashboard = () => {
                   <p className="text-sm text-amber-700">Today's Revenue</p>
                   <h3 className="text-2xl font-bold text-amber-900">
                     {new Intl.NumberFormat('en-ET', { style: 'currency', currency: 'ETB' }).format(
-                      ordersData?.filter(o => 
+                      ordersData?.filter((o: OrderType) => 
                         new Date(o.createdAt).toDateString() === new Date().toDateString() &&
                         o.status !== 'cancelled'
-                      ).reduce((sum, order) => sum + order.totalAmount, 0) || 0
+                      ).reduce((sum: number, order: OrderType) => sum + order.totalAmount, 0) || 0
                     )}
                   </h3>
                 </div>
@@ -753,7 +753,7 @@ const RestaurantDashboard = () => {
                 <div>
                   <p className="text-sm text-amber-700">Pending Deliveries</p>
                   <h3 className="text-2xl font-bold text-amber-900">
-                    {ordersData?.filter(o => 
+                    {ordersData?.filter((o: OrderType) => 
                       o.status === 'ready_for_pickup' || o.status === 'out_for_delivery'
                     ).length || 0}
                   </h3>
