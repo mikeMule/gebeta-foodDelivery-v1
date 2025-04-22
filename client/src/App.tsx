@@ -23,6 +23,9 @@ import RestaurantDashboard from "@/pages/RestaurantDashboard";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
+// New imports for our WebSocket implementation
+import NotificationBellNew from "@/components/NotificationBellNew";
+import WebSocketStatusIndicator from "@/components/WebSocketStatusIndicator";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -76,6 +79,13 @@ function App() {
               <Splash />
             ) : (
               <>
+                {/* Global notification bell for authenticated users */}
+                {location !== "/login" && location !== "/otp-verification" && (
+                  <div className="fixed top-4 right-4 z-50">
+                    <WebSocketStatusIndicator />
+                  </div>
+                )}
+                
                 <div className={shouldShowNavBar() ? "pb-20" : ""}>
                   <Switch>
                     <Route path="/login" component={Login} />

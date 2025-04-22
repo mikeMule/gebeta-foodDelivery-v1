@@ -998,7 +998,14 @@ const RestaurantDashboard = () => {
                 </DialogHeader>
                 <FoodItemForm
                   restaurantId={restaurantId}
-                  foodItem={editingFoodItem || undefined}
+                  foodItem={editingFoodItem ? {
+                    ...editingFoodItem,
+                    categoryId: editingFoodItem.categoryId || 1,
+                    createdAt: editingFoodItem.createdAt || null,
+                    updatedAt: editingFoodItem.updatedAt || null,
+                    needsApproval: editingFoodItem.needsApproval || null,
+                    isApproved: editingFoodItem.isApproved || null
+                  } : undefined}
                   categories={categories}
                   onSubmit={(data) => {
                     if (editingFoodItem) {
