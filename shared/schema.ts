@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision, foreignKey, varchar, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -35,13 +36,30 @@ export const insertUserSchema = createInsertSchema(users).pick({
   restaurantName: z.string().optional(),
 });
 
+// Food categories table (managed by admin)
+export const foodCategories = pgTable("food_categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFoodCategorySchema = createInsertSchema(foodCategories).pick({
+  name: true,
+  description: true,
+  imageUrl: true,
+  active: true,
+});
+
 // Restaurant table
 export const restaurants = pgTable("restaurants", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url").notNull(),
-  categories: text("categories").notNull(),
+  categories: text("categories").notNull(), // comma-separated list of category IDs or names
   rating: doublePrecision("rating").notNull(),
   deliveryTime: text("delivery_time").notNull(),
   deliveryFee: integer("delivery_fee").notNull(),
@@ -52,6 +70,9 @@ export const restaurants = pgTable("restaurants", {
   closingHours: text("closing_hours").notNull().default("21:00"),
   phone: text("phone").notNull().default("+251-11-111-1111"),
   address: text("address").notNull().default("Addis Ababa, Ethiopia"),
+  active: boolean("active").default(true),
+  approved: boolean("approved").default(false), // Requires admin approval
+  createdById: integer("created_by_id"), // ID of admin who created the restaurant
 });
 
 export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
@@ -71,24 +92,69 @@ export const insertRestaurantSchema = createInsertSchema(restaurants).pick({
   address: true,
 });
 
+// Restaurant owners table (linking users to restaurants)
+export const restaurantOwners = pgTable("restaurant_owners", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Reference to users table
+  restaurantId: integer("restaurant_id").notNull(), // Reference to restaurants table
+  isActive: boolean("is_active").default(true),
+  isPrimary: boolean("is_primary").default(false), // Only one primary owner per restaurant
+  createdAt: timestamp("created_at").defaultNow(),
+  createdById: integer("created_by_id"), // Admin user who created this record
+}, (table) => {
+  return {
+    userRestaurantUnique: uniqueIndex("user_restaurant_unique").on(table.userId, table.restaurantId),
+    restaurantIdIdx: index("restaurant_owners_restaurant_id_idx").on(table.restaurantId),
+    userIdIdx: index("restaurant_owners_user_id_idx").on(table.userId)
+  };
+});
+
+export const insertRestaurantOwnerSchema = createInsertSchema(restaurantOwners).pick({
+  userId: true,
+  restaurantId: true,
+  isActive: true,
+  isPrimary: true,
+  createdById: true,
+});
+
 // Food item table
 export const foodItems = pgTable("food_items", {
   id: serial("id").primaryKey(),
   restaurantId: integer("restaurant_id").notNull(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  category: text("category").notNull(),
+  categoryId: integer("category_id").notNull(), // Reference to food_categories
   price: integer("price").notNull(),
   imageUrl: text("image_url").notNull(),
+  isAvailable: boolean("is_available").default(true),
+  isSpecial: boolean("is_special").default(false), // For daily specials, promotions, etc.
+  isVegetarian: boolean("is_vegetarian").default(false),
+  isSpicy: boolean("is_spicy").default(false),
+  needsApproval: boolean("needs_approval").default(true), // For admin approval
+  isApproved: boolean("is_approved").default(false), // Admin approval status
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+}, (table) => {
+  return {
+    restaurantIdIdx: index("food_items_restaurant_id_idx").on(table.restaurantId),
+    categoryIdIdx: index("food_items_category_id_idx").on(table.categoryId)
+  };
 });
 
 export const insertFoodItemSchema = createInsertSchema(foodItems).pick({
   restaurantId: true,
   name: true,
   description: true,
-  category: true,
+  categoryId: true,
   price: true,
   imageUrl: true,
+  isAvailable: true,
+  isSpecial: true,
+  isVegetarian: true,
+  isSpicy: true,
+  needsApproval: true,
+  isApproved: true,
+  updatedAt: true,
 });
 
 // Order table
@@ -219,36 +285,98 @@ export const insertDeliveryReviewSchema = createInsertSchema(deliveryReviews).pi
   comment: true,
 });
 
-// Types exports
-export type User = typeof users.$inferSelect & {
-  // Additional properties that may be added from metadata or other sources
-  restaurantId?: number;
-  restaurantName?: string;
-};
-export type InsertUser = z.infer<typeof insertUserSchema>;
+// Define table relations
+export const usersRelations = relations(users, ({ many }) => ({
+  restaurantOwners: many(restaurantOwners),
+  orders: many(orders),
+  reviews: many(reviews),
+  deliveryPartner: many(deliveryPartners),
+}));
 
-export type Restaurant = typeof restaurants.$inferSelect;
-export type InsertRestaurant = z.infer<typeof insertRestaurantSchema>;
+export const restaurantsRelations = relations(restaurants, ({ many }) => ({
+  restaurantOwners: many(restaurantOwners),
+  foodItems: many(foodItems),
+  orders: many(orders),
+  reviews: many(reviews),
+}));
 
-export type FoodItem = typeof foodItems.$inferSelect;
-export type InsertFoodItem = z.infer<typeof insertFoodItemSchema>;
+export const restaurantOwnersRelations = relations(restaurantOwners, ({ one }) => ({
+  user: one(users, {
+    fields: [restaurantOwners.userId],
+    references: [users.id],
+  }),
+  restaurant: one(restaurants, {
+    fields: [restaurantOwners.restaurantId],
+    references: [restaurants.id],
+  }),
+}));
 
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export const foodItemsRelations = relations(foodItems, ({ one, many }) => ({
+  restaurant: one(restaurants, {
+    fields: [foodItems.restaurantId],
+    references: [restaurants.id],
+  }),
+  category: one(foodCategories, {
+    fields: [foodItems.categoryId],
+    references: [foodCategories.id],
+  }),
+  orderItems: many(orderItems),
+}));
 
-export type OrderItem = typeof orderItems.$inferSelect;
-export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export const foodCategoriesRelations = relations(foodCategories, ({ many }) => ({
+  foodItems: many(foodItems),
+}));
 
-export type Review = typeof reviews.$inferSelect;
-export type InsertReview = z.infer<typeof insertReviewSchema>;
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id],
+  }),
+  restaurant: one(restaurants, {
+    fields: [orders.restaurantId],
+    references: [restaurants.id],
+  }),
+  deliveryPartner: one(deliveryPartners, {
+    fields: [orders.deliveryPartnerId],
+    references: [deliveryPartners.id],
+  }),
+  orderItems: many(orderItems),
+  deliveryReviews: many(deliveryReviews),
+  financialTransactions: many(financialTransactions),
+}));
 
-export type DeliveryPartner = typeof deliveryPartners.$inferSelect;
-export type InsertDeliveryPartner = z.infer<typeof insertDeliveryPartnerSchema>;
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  foodItem: one(foodItems, {
+    fields: [orderItems.foodItemId],
+    references: [foodItems.id],
+  }),
+}));
 
-export type DeliveryReview = typeof deliveryReviews.$inferSelect;
-export type InsertDeliveryReview = z.infer<typeof insertDeliveryReviewSchema>;
+export const deliveryPartnersRelations = relations(deliveryPartners, ({ one, many }) => ({
+  user: one(users, {
+    fields: [deliveryPartners.userId],
+    references: [users.id],
+  }),
+  orders: many(orders),
+  deliveryReviews: many(deliveryReviews),
+}));
 
-// Add financial transactions table before exports
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  user: one(users, {
+    fields: [reviews.userId],
+    references: [users.id],
+  }),
+  restaurant: one(restaurants, {
+    fields: [reviews.restaurantId],
+    references: [restaurants.id],
+  }),
+}));
+
+// Financial transactions table
 export const financialTransactions = pgTable("financial_transactions", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").notNull(),
@@ -274,6 +402,63 @@ export const insertFinancialTransactionSchema = createInsertSchema(financialTran
   transactionReference: true,
   notes: true,
 });
+
+export const deliveryReviewsRelations = relations(deliveryReviews, ({ one }) => ({
+  user: one(users, {
+    fields: [deliveryReviews.userId],
+    references: [users.id],
+  }),
+  deliveryPartner: one(deliveryPartners, {
+    fields: [deliveryReviews.deliveryPartnerId],
+    references: [deliveryPartners.id],
+  }),
+  order: one(orders, {
+    fields: [deliveryReviews.orderId],
+    references: [orders.id],
+  }),
+}));
+
+export const financialTransactionsRelations = relations(financialTransactions, ({ one }) => ({
+  order: one(orders, {
+    fields: [financialTransactions.orderId],
+    references: [orders.id],
+  }),
+}));
+
+// Types exports
+export type User = typeof users.$inferSelect & {
+  // Additional properties that may be added from metadata or other sources
+  restaurantId?: number;
+  restaurantName?: string;
+};
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Restaurant = typeof restaurants.$inferSelect;
+export type InsertRestaurant = z.infer<typeof insertRestaurantSchema>;
+
+export type RestaurantOwner = typeof restaurantOwners.$inferSelect;
+export type InsertRestaurantOwner = z.infer<typeof insertRestaurantOwnerSchema>;
+
+export type FoodCategory = typeof foodCategories.$inferSelect;
+export type InsertFoodCategory = z.infer<typeof insertFoodCategorySchema>;
+
+export type FoodItem = typeof foodItems.$inferSelect;
+export type InsertFoodItem = z.infer<typeof insertFoodItemSchema>;
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+export type DeliveryPartner = typeof deliveryPartners.$inferSelect;
+export type InsertDeliveryPartner = z.infer<typeof insertDeliveryPartnerSchema>;
+
+export type DeliveryReview = typeof deliveryReviews.$inferSelect;
+export type InsertDeliveryReview = z.infer<typeof insertDeliveryReviewSchema>;
 
 export type FinancialTransaction = typeof financialTransactions.$inferSelect;
 export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;

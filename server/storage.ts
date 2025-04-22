@@ -1,11 +1,15 @@
 import { 
   type User, type InsertUser, 
   type Restaurant, type InsertRestaurant,
+  type RestaurantOwner, type InsertRestaurantOwner,
+  type FoodCategory, type InsertFoodCategory,
   type FoodItem, type InsertFoodItem,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
   type Review, type InsertReview,
-  users, restaurants, foodItems, orders, orderItems, reviews
+  type FinancialTransaction, type InsertFinancialTransaction,
+  users, restaurants, restaurantOwners, foodCategories, foodItems, 
+  orders, orderItems, reviews, financialTransactions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
@@ -37,20 +41,42 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<User>;
   deleteUser(id: number): Promise<void>;
   
   // Restaurant methods
   getRestaurant(id: number): Promise<Restaurant | undefined>;
   getAllRestaurants(): Promise<Restaurant[]>;
+  getActiveRestaurants(): Promise<Restaurant[]>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
   updateRestaurant(id: number, restaurant: Partial<InsertRestaurant>): Promise<Restaurant>;
+  deleteRestaurant(id: number): Promise<void>;
+  approveRestaurant(id: number): Promise<Restaurant>;
+  
+  // Restaurant Owner methods
+  getRestaurantOwner(id: number): Promise<RestaurantOwner | undefined>;
+  getRestaurantOwnerByUserId(userId: number): Promise<RestaurantOwner | undefined>;
   getRestaurantOwners(restaurantId: number): Promise<User[]>;
+  createRestaurantOwner(owner: InsertRestaurantOwner): Promise<RestaurantOwner>;
+  updateRestaurantOwner(id: number, ownerData: Partial<InsertRestaurantOwner>): Promise<RestaurantOwner>;
+  deleteRestaurantOwner(id: number): Promise<void>;
+  
+  // Food Category methods
+  getFoodCategory(id: number): Promise<FoodCategory | undefined>;
+  getAllFoodCategories(): Promise<FoodCategory[]>;
+  getActiveFoodCategories(): Promise<FoodCategory[]>;
+  createFoodCategory(category: InsertFoodCategory): Promise<FoodCategory>;
+  updateFoodCategory(id: number, categoryData: Partial<InsertFoodCategory>): Promise<FoodCategory>;
+  deleteFoodCategory(id: number): Promise<void>;
   
   // Food item methods
   getFoodItem(id: number): Promise<FoodItem | undefined>;
   getFoodItemsByRestaurant(restaurantId: number): Promise<FoodItem[]>;
+  getFoodItemsByCategory(categoryId: number): Promise<FoodItem[]>;
   createFoodItem(foodItem: InsertFoodItem): Promise<FoodItem>;
+  updateFoodItem(id: number, foodItemData: Partial<InsertFoodItem>): Promise<FoodItem>;
   deleteFoodItem(id: number): Promise<void>;
+  approveFoodItem(id: number): Promise<FoodItem>;
   
   // Order methods
   getOrder(id: number): Promise<Order | undefined>;
@@ -59,11 +85,14 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order>;
   assignDeliveryPartner(orderId: number, deliveryPartnerId: number): Promise<Order>;
+  approveOrder(id: number): Promise<Order>;
   
   // Order item methods
   getOrderItem(id: number): Promise<OrderItem | undefined>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  updateOrderItem(id: number, itemData: Partial<InsertOrderItem>): Promise<OrderItem>;
+  deleteOrderItem(id: number): Promise<void>;
   
   // Delivery methods
   getActiveDeliveryPartners(): Promise<any[]>;
@@ -72,9 +101,13 @@ export interface IStorage {
   getReview(id: number): Promise<Review | undefined>;
   getReviewsByRestaurant(restaurantId: number): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
+  deleteReview(id: number): Promise<void>;
   
-  // Category methods
-  getAllCategories(): Promise<string[]>;
+  // Financial Transaction methods
+  getFinancialTransaction(id: number): Promise<FinancialTransaction | undefined>;
+  getFinancialTransactionsByOrder(orderId: number): Promise<FinancialTransaction[]>;
+  createFinancialTransaction(transaction: InsertFinancialTransaction): Promise<FinancialTransaction>;
+  updateFinancialTransactionStatus(id: number, status: string): Promise<FinancialTransaction>;
   
   // Session store
   sessionStore: session.Store;
@@ -293,6 +326,108 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    try {
+      // Handle restaurant owner metadata
+      const { restaurantId, restaurantName, ...userUpdateData } = userData as Partial<InsertUser> & { 
+        restaurantId?: number;
+        restaurantName?: string;
+      };
+      
+      // If updating a restaurant owner with restaurant info, update metadata
+      let metadataUpdate = '';
+      if (restaurantId !== undefined || restaurantName !== undefined) {
+        // Get current user to retrieve existing metadata
+        const currentUser = await this.getUser(id);
+        if (!currentUser) {
+          throw new Error(`User with ID ${id} not found`);
+        }
+        
+        // Parse current metadata
+        const currentMetadata = parseMetadata(typeof currentUser.metadata === 'string' 
+          ? currentUser.metadata 
+          : JSON.stringify(currentUser.metadata || {}));
+        
+        // Update metadata with new values
+        const updatedMetadata = {
+          ...currentMetadata,
+          ...(restaurantId !== undefined ? { restaurantId } : {}),
+          ...(restaurantName !== undefined ? { restaurantName } : {})
+        };
+        
+        // Set metadata update SQL
+        metadataUpdate = `, metadata = '${JSON.stringify(updatedMetadata)}'`;
+      }
+      
+      // Build SET clauses for SQL update
+      const setClauses: string[] = [];
+      if (userUpdateData.username) setClauses.push(`username = '${userUpdateData.username}'`);
+      if (userUpdateData.phoneNumber) setClauses.push(`phone_number = '${userUpdateData.phoneNumber}'`);
+      if (userUpdateData.password) setClauses.push(`password = '${userUpdateData.password}'`);
+      if (userUpdateData.location) setClauses.push(`location = '${userUpdateData.location}'`);
+      if (userUpdateData.fullName) setClauses.push(`full_name = '${userUpdateData.fullName}'`);
+      if (userUpdateData.email) setClauses.push(`email = '${userUpdateData.email}'`);
+      if (userUpdateData.idNumber) setClauses.push(`id_number = '${userUpdateData.idNumber}'`);
+      if (userUpdateData.idVerified !== undefined) setClauses.push(`id_verified = ${userUpdateData.idVerified}`);
+      if (userUpdateData.userType) setClauses.push(`user_type = '${userUpdateData.userType}'`);
+      
+      // If no fields to update, return the existing user
+      if (setClauses.length === 0 && !metadataUpdate) {
+        return await this.getUser(id) as User;
+      }
+      
+      // Construct the SQL query
+      const setClause = setClauses.join(', ') + metadataUpdate;
+      const query = `
+        UPDATE users 
+        SET ${setClause}
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      
+      console.log(`Updating user ${id} with:`, {
+        ...userUpdateData,
+        password: userUpdateData.password ? "****" : undefined, // Mask password in logs
+        metadataUpdated: metadataUpdate.length > 0
+      });
+      
+      // Execute the SQL query
+      const result = await db.execute(sql`${query}`);
+      
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error(`Failed to update user ${id} - no result returned`);
+      }
+      
+      // Map the raw database row to our User type
+      const user = {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        phoneNumber: result.rows[0].phone_number,
+        password: result.rows[0].password,
+        location: result.rows[0].location,
+        fullName: result.rows[0].full_name,
+        email: result.rows[0].email,
+        idNumber: result.rows[0].id_number,
+        idVerified: result.rows[0].id_verified,
+        userType: result.rows[0].user_type,
+        metadata: result.rows[0].metadata,
+        createdAt: result.rows[0].created_at
+      };
+      
+      // Process metadata using our helper function
+      const metadata = parseMetadata(user.metadata);
+      
+      return {
+        ...user,
+        restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : undefined,
+        restaurantName: metadata.restaurantName as string || undefined,
+      } as User;
+    } catch (error) {
+      console.error(`Error updating user ${id}:`, error);
+      throw error;
+    }
+  }
+  
   async deleteUser(id: number): Promise<void> {
     try {
       console.log(`Deleting user with ID: ${id}`);
@@ -315,6 +450,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(restaurants);
   }
   
+  async getActiveRestaurants(): Promise<Restaurant[]> {
+    return await db.select()
+      .from(restaurants)
+      .where(eq(restaurants.active, true));
+  }
+  
   async createRestaurant(insertRestaurant: InsertRestaurant): Promise<Restaurant> {
     const result = await db.insert(restaurants).values(insertRestaurant).returning();
     return result[0];
@@ -327,6 +468,85 @@ export class DatabaseStorage implements IStorage {
       .where(eq(restaurants.id, id))
       .returning();
     return result[0];
+  }
+  
+  async deleteRestaurant(id: number): Promise<void> {
+    await db.delete(restaurants).where(eq(restaurants.id, id));
+  }
+  
+  async approveRestaurant(id: number): Promise<Restaurant> {
+    const result = await db
+      .update(restaurants)
+      .set({ 
+        approved: true,
+        active: true
+      })
+      .where(eq(restaurants.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  // Restaurant Owner methods
+  async getRestaurantOwner(id: number): Promise<RestaurantOwner | undefined> {
+    const result = await db.select().from(restaurantOwners).where(eq(restaurantOwners.id, id));
+    return result[0];
+  }
+  
+  async getRestaurantOwnerByUserId(userId: number): Promise<RestaurantOwner | undefined> {
+    const result = await db.select().from(restaurantOwners).where(eq(restaurantOwners.userId, userId));
+    return result[0];
+  }
+  
+  async createRestaurantOwner(owner: InsertRestaurantOwner): Promise<RestaurantOwner> {
+    const result = await db.insert(restaurantOwners).values(owner).returning();
+    return result[0];
+  }
+  
+  async updateRestaurantOwner(id: number, ownerData: Partial<InsertRestaurantOwner>): Promise<RestaurantOwner> {
+    const result = await db
+      .update(restaurantOwners)
+      .set(ownerData)
+      .where(eq(restaurantOwners.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async deleteRestaurantOwner(id: number): Promise<void> {
+    await db.delete(restaurantOwners).where(eq(restaurantOwners.id, id));
+  }
+  
+  // Food Category methods
+  async getFoodCategory(id: number): Promise<FoodCategory | undefined> {
+    const result = await db.select().from(foodCategories).where(eq(foodCategories.id, id));
+    return result[0];
+  }
+  
+  async getAllFoodCategories(): Promise<FoodCategory[]> {
+    return await db.select().from(foodCategories);
+  }
+  
+  async getActiveFoodCategories(): Promise<FoodCategory[]> {
+    return await db.select()
+      .from(foodCategories)
+      .where(eq(foodCategories.active, true));
+  }
+  
+  async createFoodCategory(category: InsertFoodCategory): Promise<FoodCategory> {
+    const result = await db.insert(foodCategories).values(category).returning();
+    return result[0];
+  }
+  
+  async updateFoodCategory(id: number, categoryData: Partial<InsertFoodCategory>): Promise<FoodCategory> {
+    const result = await db
+      .update(foodCategories)
+      .set(categoryData)
+      .where(eq(foodCategories.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async deleteFoodCategory(id: number): Promise<void> {
+    await db.delete(foodCategories).where(eq(foodCategories.id, id));
   }
   
   async getRestaurantOwners(restaurantId: number): Promise<User[]> {
@@ -382,13 +602,38 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(foodItems).where(eq(foodItems.restaurantId, restaurantId));
   }
   
+  async getFoodItemsByCategory(categoryId: number): Promise<FoodItem[]> {
+    return await db.select().from(foodItems).where(eq(foodItems.categoryId, categoryId));
+  }
+  
   async createFoodItem(insertFoodItem: InsertFoodItem): Promise<FoodItem> {
     const result = await db.insert(foodItems).values(insertFoodItem).returning();
     return result[0];
   }
   
+  async updateFoodItem(id: number, foodItemData: Partial<InsertFoodItem>): Promise<FoodItem> {
+    const result = await db
+      .update(foodItems)
+      .set(foodItemData)
+      .where(eq(foodItems.id, id))
+      .returning();
+    return result[0];
+  }
+  
   async deleteFoodItem(id: number): Promise<void> {
     await db.delete(foodItems).where(eq(foodItems.id, id));
+  }
+  
+  async approveFoodItem(id: number): Promise<FoodItem> {
+    const result = await db
+      .update(foodItems)
+      .set({ 
+        isApproved: true,
+        isAvailable: true
+      })
+      .where(eq(foodItems.id, id))
+      .returning();
+    return result[0];
   }
   
   // Order methods
@@ -422,6 +667,19 @@ export class DatabaseStorage implements IStorage {
   async createOrderItem(insertOrderItem: InsertOrderItem): Promise<OrderItem> {
     const result = await db.insert(orderItems).values(insertOrderItem).returning();
     return result[0];
+  }
+  
+  async updateOrderItem(id: number, itemData: Partial<InsertOrderItem>): Promise<OrderItem> {
+    const result = await db
+      .update(orderItems)
+      .set(itemData)
+      .where(eq(orderItems.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async deleteOrderItem(id: number): Promise<void> {
+    await db.delete(orderItems).where(eq(orderItems.id, id));
   }
   
   // New methods for Restaurant Management
@@ -501,6 +759,19 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
+  async approveOrder(id: number): Promise<Order> {
+    const result = await db
+      .update(orders)
+      .set({ 
+        adminApproved: true,
+        needsApproval: false,
+        updatedAt: new Date() 
+      })
+      .where(eq(orders.id, id))
+      .returning();
+    return result[0];
+  }
+  
   async getActiveDeliveryPartners(): Promise<any[]> {
     // In a real app, we'd query a delivery_partners table
     // For now, we'll return mock data
@@ -571,6 +842,34 @@ export class DatabaseStorage implements IStorage {
       ...insertReview,
       createdAt: new Date()
     }).returning();
+    return result[0];
+  }
+  
+  async deleteReview(id: number): Promise<void> {
+    await db.delete(reviews).where(eq(reviews.id, id));
+  }
+  
+  // Financial Transaction methods
+  async getFinancialTransaction(id: number): Promise<FinancialTransaction | undefined> {
+    const result = await db.select().from(financialTransactions).where(eq(financialTransactions.id, id));
+    return result[0];
+  }
+  
+  async getFinancialTransactionsByOrder(orderId: number): Promise<FinancialTransaction[]> {
+    return await db.select().from(financialTransactions).where(eq(financialTransactions.orderId, orderId));
+  }
+  
+  async createFinancialTransaction(transaction: InsertFinancialTransaction): Promise<FinancialTransaction> {
+    const result = await db.insert(financialTransactions).values(transaction).returning();
+    return result[0];
+  }
+  
+  async updateFinancialTransactionStatus(id: number, status: string): Promise<FinancialTransaction> {
+    const result = await db
+      .update(financialTransactions)
+      .set({ status })
+      .where(eq(financialTransactions.id, id))
+      .returning();
     return result[0];
   }
   
@@ -664,11 +963,18 @@ export class DatabaseStorage implements IStorage {
       });
       
       // Create mock food items for the first restaurant
+      // Create a pizza category first
+      const pizzaCategory = await this.createFoodCategory({
+        name: "Pizza",
+        description: "Italian dish consisting of a flattened disk of bread dough topped with tomato sauce, cheese, and various toppings",
+        imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300&auto=format&fit=crop"
+      });
+      
       await this.createFoodItem({
         restaurantId: restaurant1.id,
         name: "Margherita Pizza",
         description: "Classic tomato sauce, mozzarella cheese, and fresh basil",
-        category: "Pizza",
+        categoryId: pizzaCategory.id,
         price: 180,
         imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300&auto=format&fit=crop"
       });
@@ -677,16 +983,23 @@ export class DatabaseStorage implements IStorage {
         restaurantId: restaurant1.id,
         name: "Pepperoni Pizza",
         description: "Tomato sauce, mozzarella, and pepperoni slices",
-        category: "Pizza",
+        categoryId: pizzaCategory.id,
         price: 210,
         imageUrl: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=300&auto=format&fit=crop"
+      });
+      
+      // Create pasta category
+      const pastaCategory = await this.createFoodCategory({
+        name: "Pasta",
+        description: "Italian dish made of unleavened dough of wheat flour mixed with water or eggs",
+        imageUrl: "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300&auto=format&fit=crop"
       });
       
       await this.createFoodItem({
         restaurantId: restaurant1.id,
         name: "Spaghetti Carbonara",
         description: "Creamy sauce with eggs, cheese, pancetta, and black pepper",
-        category: "Pasta",
+        categoryId: pastaCategory.id,
         price: 160,
         imageUrl: "https://images.unsplash.com/photo-1612874742237-6526221588e3?w=300&auto=format&fit=crop"
       });
@@ -695,9 +1008,16 @@ export class DatabaseStorage implements IStorage {
         restaurantId: restaurant1.id,
         name: "Fettuccine Alfredo",
         description: "Creamy Parmesan sauce with butter and fresh parsley",
-        category: "Pasta",
+        categoryId: pastaCategory.id,
         price: 170,
         imageUrl: "https://images.unsplash.com/photo-1608219992759-8d74ed8d76eb?w=300&auto=format&fit=crop"
+      });
+      
+      // Create main course category
+      const mainCourseCategory = await this.createFoodCategory({
+        name: "Main Course",
+        description: "Primary dish in a meal",
+        imageUrl: "https://images.unsplash.com/photo-1567888033478-593a83beca49?w=300&auto=format&fit=crop"
       });
       
       // Create mock food items for other restaurants
@@ -705,7 +1025,7 @@ export class DatabaseStorage implements IStorage {
         restaurantId: restaurant2.id,
         name: "Doro Wat",
         description: "Spicy chicken stew served with injera",
-        category: "Main Course",
+        categoryId: mainCourseCategory.id,
         price: 220,
         imageUrl: "https://images.unsplash.com/photo-1567888033478-593a83beca49?w=300&auto=format&fit=crop"
       });
@@ -714,16 +1034,23 @@ export class DatabaseStorage implements IStorage {
         restaurantId: restaurant2.id,
         name: "Tibs",
         description: "Sautéed meat with vegetables and spices",
-        category: "Main Course",
+        categoryId: mainCourseCategory.id,
         price: 190,
         imageUrl: "https://images.unsplash.com/photo-1530990457142-bb18a120834d?w=300&auto=format&fit=crop"
+      });
+      
+      // Create burgers category
+      const burgersCategory = await this.createFoodCategory({
+        name: "Burgers",
+        description: "Sandwich consisting of one or more cooked patties, placed inside a sliced bun",
+        imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&auto=format&fit=crop"
       });
       
       await this.createFoodItem({
         restaurantId: restaurant3.id,
         name: "Classic Cheeseburger",
         description: "Beef patty with cheese, lettuce, tomato, and special sauce",
-        category: "Burgers",
+        categoryId: burgersCategory.id,
         price: 150,
         imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&auto=format&fit=crop"
       });
@@ -732,7 +1059,7 @@ export class DatabaseStorage implements IStorage {
         restaurantId: restaurant3.id,
         name: "Crispy Chicken Burger",
         description: "Crispy chicken fillet with lettuce, pickles, and mayo",
-        category: "Burgers",
+        categoryId: burgersCategory.id,
         price: 140,
         imageUrl: "https://images.unsplash.com/photo-1626078299034-58cd871ee9c3?w=300&auto=format&fit=crop"
       });
