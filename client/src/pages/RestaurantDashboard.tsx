@@ -250,6 +250,8 @@ const RestaurantDashboard = () => {
   // Get the restaurant ID (in a real app, this would come from the auth context)
   const restaurantId = 1; // Default to restaurant ID 1 for demo
   
+
+  
   // Authentication check
   useEffect(() => {
     if (!isAuthenticated || userData?.userType !== "restaurant_owner") {

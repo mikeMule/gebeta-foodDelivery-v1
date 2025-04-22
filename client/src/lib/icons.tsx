@@ -98,6 +98,47 @@ export const Instagram = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Custom AlertCircle icon
+export const AlertCircleIcon = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+// Custom UserX icon
+export const UserXIcon = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <line x1="17" y1="8" x2="22" y2="13" />
+    <line x1="22" y1="8" x2="17" y2="13" />
+  </svg>
+);
+
 export const Icons = {
   home: Home,
   search: Search,
@@ -149,8 +190,8 @@ export const Icons = {
   pencil: Pencil,
   settings: Settings,
   clipboardList: ClipboardList,
-  alertCircle: AlertCircle,
-  userX: UserX,
+  alertCircle: AlertCircleIcon,
+  userX: UserXIcon,
   scan: (props: any) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M3 7V5a2 2 0 0 1 2-2h2" />
