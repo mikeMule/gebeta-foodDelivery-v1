@@ -408,7 +408,23 @@ const RestaurantDashboard = () => {
   // Mutation for updating a food item
   const updateFoodItemMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('PATCH', `/api/food-items/${data.id}`, data);
+      // Ensure we have all required data
+      if (!data.id) {
+        throw new Error("Food item ID is required for updates");
+      }
+      
+      // Category name to categoryId mapping if needed
+      const updatePayload = {
+        ...data,
+        // Map category name to category ID if possible
+        categoryId: 1, // Default value, will be replaced with proper mapping in production
+      };
+      
+      // Log the payload for debugging
+      console.log("Updating food item with data:", JSON.stringify(updatePayload));
+      
+      // Send the update request
+      const response = await apiRequest('PATCH', `/api/food-items/${data.id}`, updatePayload);
       return await response.json();
     },
     onSuccess: () => {

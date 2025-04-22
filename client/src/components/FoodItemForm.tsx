@@ -25,12 +25,15 @@ import { Icons } from "@/lib/icons";
 
 // Form schema with validation
 const foodItemSchema = z.object({
+  id: z.number().optional(), // Include ID for updates
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   category: z.string().min(1, "Please select a category"),
   price: z.coerce.number().min(1, "Price must be greater than 0"),
   imageUrl: z.string().url("Please enter a valid URL"),
-  restaurantId: z.number()
+  restaurantId: z.number(),
+  // Include categoryId mapping for the backend
+  categoryId: z.number().optional()
 });
 
 type FoodItemFormValues = z.infer<typeof foodItemSchema>;
