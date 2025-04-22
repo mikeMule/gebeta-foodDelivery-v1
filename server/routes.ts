@@ -406,6 +406,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Food Categories route
+  app.get("/api/food-categories", async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getAllFoodCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching food categories:", error);
+      res.status(500).json({ message: "Failed to fetch food categories" });
+    }
+  });
+  
   // Geocoding endpoint using Google Maps API
   app.get("/api/geocode", async (req: Request, res: Response) => {
     try {
