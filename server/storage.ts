@@ -41,12 +41,18 @@ export interface IStorage {
   // Order methods
   getOrder(id: number): Promise<Order | undefined>;
   getOrdersByUser(userId: number): Promise<Order[]>;
+  getOrdersByRestaurant(restaurantId: number): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
+  updateOrderStatus(id: number, status: string): Promise<Order>;
+  assignDeliveryPartner(orderId: number, deliveryPartnerId: number): Promise<Order>;
   
   // Order item methods
   getOrderItem(id: number): Promise<OrderItem | undefined>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  
+  // Delivery methods
+  getActiveDeliveryPartners(): Promise<any[]>;
   
   // Review methods
   getReview(id: number): Promise<Review | undefined>;
@@ -171,6 +177,89 @@ export class DatabaseStorage implements IStorage {
   async createOrderItem(insertOrderItem: InsertOrderItem): Promise<OrderItem> {
     const result = await db.insert(orderItems).values(insertOrderItem).returning();
     return result[0];
+  }
+  
+  // New methods for Restaurant Management
+  
+  async getOrdersByRestaurant(restaurantId: number): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.restaurantId, restaurantId));
+  }
+  
+  async updateOrderStatus(id: number, status: string): Promise<Order> {
+    const result = await db
+      .update(orders)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async assignDeliveryPartner(orderId: number, deliveryPartnerId: number): Promise<Order> {
+    const result = await db
+      .update(orders)
+      .set({ 
+        deliveryPartnerId, 
+        status: "out_for_delivery",
+        updatedAt: new Date() 
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+    return result[0];
+  }
+  
+  async getActiveDeliveryPartners(): Promise<any[]> {
+    // In a real app, we'd query a delivery_partners table
+    // For now, we'll return mock data
+    return [
+      {
+        id: 1,
+        userId: 101,
+        vehicleType: "Motorcycle",
+        plateNumber: "ET-125-4567",
+        activeOrderCount: 0,
+        rating: 4.8,
+        status: "available",
+        currentLatitude: 9.0278,
+        currentLongitude: 38.7577,
+        user: {
+          id: 101,
+          fullName: "Abel Tesfaye",
+          phoneNumber: "0932456789"
+        }
+      },
+      {
+        id: 2,
+        userId: 102,
+        vehicleType: "Bicycle",
+        plateNumber: null,
+        activeOrderCount: 1,
+        rating: 4.6,
+        status: "available",
+        currentLatitude: 9.0298,
+        currentLongitude: 38.7623,
+        user: {
+          id: 102,
+          fullName: "Frehiwot Abebe",
+          phoneNumber: "0911345678"
+        }
+      },
+      {
+        id: 3,
+        userId: 103,
+        vehicleType: "Motorcycle",
+        plateNumber: "ET-872-1234",
+        activeOrderCount: 0,
+        rating: 4.9,
+        status: "available",
+        currentLatitude: 9.0315,
+        currentLongitude: 38.7521,
+        user: {
+          id: 103,
+          fullName: "Samuel Mekonen",
+          phoneNumber: "0935678901"
+        }
+      }
+    ];
   }
   
   // Review methods

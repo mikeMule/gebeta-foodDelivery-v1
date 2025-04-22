@@ -420,6 +420,310 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Restaurant management API endpoints
+  
+  // Restaurant authentication endpoint
+  app.post("/api/restaurant/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      // Get the user with the restaurant_owner type
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.userType !== "restaurant_owner") {
+        return res.status(401).json({ message: "Invalid credentials or not authorized as restaurant owner" });
+      }
+      
+      // In a real app, you would compare passwords securely here
+      
+      // Return restaurant data
+      const restaurantId = 1; // In a real app, this would be fetched from a restaurant_owners table
+      const restaurant = await storage.getRestaurant(restaurantId);
+      
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      
+      return res.status(200).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          phoneNumber: user.phoneNumber,
+          fullName: user.fullName,
+          email: user.email,
+          userType: user.userType
+        },
+        restaurant: {
+          id: restaurant.id,
+          name: restaurant.name,
+          description: restaurant.description,
+          address: restaurant.address,
+          phone: restaurant.phone,
+          imageUrl: restaurant.imageUrl
+        }
+      });
+    } catch (error) {
+      console.error("Error in restaurant login:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get orders for a specific restaurant (with filtering)
+  app.get("/api/restaurant/:id/orders", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const restaurantId = parseInt(req.params.id);
+      const statusFilter = req.query.status as string | undefined;
+      
+      // Check if the user is authorized to access this restaurant's orders
+      if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Unauthorized to access restaurant orders" });
+      }
+      
+      // Get all orders for this restaurant
+      const allOrders = await storage.getOrdersByRestaurant(restaurantId);
+      
+      // Filter orders by status if a filter is provided
+      const filteredOrders = statusFilter 
+        ? allOrders.filter(order => order.status === statusFilter)
+        : allOrders;
+      
+      // Sort by creation time (oldest first - first come, first served)
+      const sortedOrders = filteredOrders.sort((a, b) => {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+      
+      // Enrich orders with order items and customer data
+      const enrichedOrders = await Promise.all(
+        sortedOrders.map(async (order) => {
+          const orderItems = await storage.getOrderItems(order.id);
+          const user = await storage.getUser(order.userId);
+          
+          return {
+            ...order,
+            orderItems,
+            customer: user ? {
+              id: user.id,
+              phoneNumber: user.phoneNumber,
+              fullName: user.fullName || "Customer",
+              location: user.location
+            } : null
+          };
+        })
+      );
+      
+      return res.status(200).json(enrichedOrders);
+    } catch (error) {
+      console.error("Error fetching restaurant orders:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Update order status
+  app.patch("/api/orders/:id/status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      
+      // Validate the status
+      const validStatuses = ["new", "preparing", "ready_for_pickup", "out_for_delivery", "delivered", "cancelled"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      // Get the order
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if the user is authorized to update this order
+      if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Unauthorized to update order status" });
+      }
+      
+      // Update the order status
+      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      
+      // If the order is now "out_for_delivery", we would typically assign a delivery partner
+      if (status === "out_for_delivery" && req.body.deliveryPartnerId) {
+        const deliveryPartnerId = parseInt(req.body.deliveryPartnerId);
+        await storage.assignDeliveryPartner(orderId, deliveryPartnerId);
+      }
+      
+      return res.status(200).json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get available delivery partners for an order
+  app.get("/api/orders/:id/delivery-partners", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      // Get the order
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if the user is authorized to get delivery partners for this order
+      if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Unauthorized to get delivery partners" });
+      }
+      
+      // Get the restaurant coordinates
+      const restaurant = await storage.getRestaurant(order.restaurantId);
+      
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      
+      // Get all active delivery partners
+      const allDeliveryPartners = await storage.getActiveDeliveryPartners();
+      
+      // Calculate distance and sort by distance and availability
+      const deliveryPartnersWithDistance = allDeliveryPartners.map((partner) => {
+        // Calculate distance from restaurant to delivery partner
+        const distance = partner.currentLatitude && partner.currentLongitude
+          ? calculateDistance(
+              restaurant.latitude, 
+              restaurant.longitude, 
+              partner.currentLatitude, 
+              partner.currentLongitude
+            )
+          : 999; // Large default distance if no location
+          
+        return {
+          ...partner,
+          distance,
+          user: partner.user ? {
+            id: partner.user.id,
+            fullName: partner.user.fullName,
+            phoneNumber: partner.user.phoneNumber
+          } : null
+        };
+      });
+      
+      // Sort by availability (activeOrderCount) first, then by distance
+      const sortedPartners = deliveryPartnersWithDistance.sort((a, b) => {
+        // First sort by active order count
+        if (a.activeOrderCount !== b.activeOrderCount) {
+          return a.activeOrderCount - b.activeOrderCount;
+        }
+        // Then sort by distance
+        return a.distance - b.distance;
+      });
+      
+      return res.status(200).json(sortedPartners);
+    } catch (error) {
+      console.error("Error fetching delivery partners:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Assign delivery partner to order
+  app.post("/api/orders/:id/assign-delivery", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { deliveryPartnerId } = req.body;
+      
+      if (!deliveryPartnerId) {
+        return res.status(400).json({ message: "Delivery partner ID is required" });
+      }
+      
+      // Get the order
+      const order = await storage.getOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // Check if the user is authorized to assign delivery partners
+      if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Unauthorized to assign delivery partners" });
+      }
+      
+      // Assign the delivery partner and update order status
+      const updatedOrder = await storage.assignDeliveryPartner(orderId, parseInt(deliveryPartnerId));
+      await storage.updateOrderStatus(orderId, "out_for_delivery");
+      
+      // Notify the delivery partner (in a real app, you might use a real-time service)
+      
+      return res.status(200).json(updatedOrder);
+    } catch (error) {
+      console.error("Error assigning delivery partner:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get restaurant dashboard statistics
+  app.get("/api/restaurant/:id/statistics", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const restaurantId = parseInt(req.params.id);
+      
+      // Check if the user is authorized to access this restaurant's stats
+      if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
+        return res.status(403).json({ message: "Unauthorized to access restaurant statistics" });
+      }
+      
+      // Get all orders for this restaurant
+      const allOrders = await storage.getOrdersByRestaurant(restaurantId);
+      
+      // Calculate statistics
+      const totalOrders = allOrders.length;
+      const totalRevenue = allOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+      const totalCommission = allOrders.reduce((sum, order) => {
+        return sum + (order.restaurantCommissionAmount || 0);
+      }, 0);
+      
+      // Order status counts
+      const statusCounts = {
+        new: 0,
+        preparing: 0,
+        ready_for_pickup: 0,
+        out_for_delivery: 0,
+        delivered: 0,
+        cancelled: 0
+      };
+      
+      allOrders.forEach(order => {
+        if (order.status in statusCounts) {
+          statusCounts[order.status as keyof typeof statusCounts]++;
+        }
+      });
+      
+      // Today's orders
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayOrders = allOrders.filter(order => new Date(order.createdAt) >= today);
+      const todayRevenue = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+      
+      return res.status(200).json({
+        totalOrders,
+        totalRevenue,
+        totalCommission,
+        statusCounts,
+        todayOrders: todayOrders.length,
+        todayRevenue
+      });
+    } catch (error) {
+      console.error("Error fetching restaurant statistics:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
