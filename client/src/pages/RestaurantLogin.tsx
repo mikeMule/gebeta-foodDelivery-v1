@@ -41,11 +41,13 @@ const RestaurantLogin = () => {
   const { login, isAuthenticated, userData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if already logged in as restaurant owner
-  if (isAuthenticated && userData?.userType === "restaurant_owner") {
-    setLocation("/restaurant-dashboard");
-    return null;
-  }
+  // We'll handle the redirect after render instead of conditional return
+  // This prevents React hooks rendering errors
+  React.useEffect(() => {
+    if (isAuthenticated && userData?.userType === "restaurant_owner") {
+      setLocation("/restaurant-dashboard");
+    }
+  }, [isAuthenticated, userData, setLocation]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

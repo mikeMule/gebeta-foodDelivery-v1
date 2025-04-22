@@ -217,7 +217,11 @@ export const insertDeliveryReviewSchema = createInsertSchema(deliveryReviews).pi
 });
 
 // Types exports
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  // Additional properties that may be added from metadata or other sources
+  restaurantId?: number;
+  restaurantName?: string;
+};
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Restaurant = typeof restaurants.$inferSelect;

@@ -4,6 +4,16 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { insertOrderSchema, insertReviewSchema, User } from "@shared/schema";
 import { setupAuth } from "./auth";
+import session from 'express-session';
+
+// Extend Express.Session and SessionData
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+    userType?: string;
+    restaurantId?: number;
+  }
+}
 
 // Add user to Request type
 declare global {
@@ -600,9 +610,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Try to get restaurantId from various places
         
-        // 1. First check if there's a direct property on the user object
-        if (typeof user.restaurantId === 'number') {
-          restaurantId = user.restaurantId;
+        // 1. First check for restaurant ID in user data
+        // TypeScript doesn't know about the extended User type with restaurantId
+        const userAny = user as any;
+        if (typeof userAny.restaurantId === 'number') {
+          restaurantId = userAny.restaurantId;
         }
         
         // 2. Check metadata if available
