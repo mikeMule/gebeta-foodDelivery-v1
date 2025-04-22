@@ -72,12 +72,13 @@ const RestaurantLogin = () => {
         throw new Error('Login failed');
       }
 
-      const restaurantOwner = await response.json();
+      const data = await response.json();
       
       // Update user data in Auth context
       login({
-        ...restaurantOwner,
-        userType: "restaurant_owner",
+        ...data.user,
+        restaurantId: data.restaurant.id,
+        restaurantName: data.restaurant.name
       });
 
       toast({
