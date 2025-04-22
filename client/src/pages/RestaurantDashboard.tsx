@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { VoiceControl } from "@/components/VoiceControl";
 import {
   Card,
   CardContent,
@@ -600,16 +601,21 @@ const RestaurantDashboard = () => {
   };
 
   const updateOrderStatus = (orderId: string, newStatus: OrderType["status"]) => {
+    // Convert the orderId to number if it's a string
+    const orderIdNum = typeof orderId === 'string' ? 
+      parseInt(orderId.replace(/[^0-9]/g, '')) : 
+      orderId;
+    
     updateOrderStatusMutation.mutate(
       { 
-        orderId: parseInt(orderId), 
+        orderId: orderIdNum, 
         status: newStatus 
       },
       {
         onSuccess: () => {
           toast({
             title: "Order Updated",
-            description: `Order #${orderId} status changed to ${newStatus.replace("_", " ")}.`,
+            description: `Order #${orderId} status changed to ${newStatus.replace(/_/g, " ")}.`,
           });
         }
       }
@@ -886,6 +892,15 @@ const RestaurantDashboard = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Voice Control Component */}
+            <VoiceControl 
+              onUpdateOrderStatus={(orderId, status) => {
+                // Cast status to the required type before passing it to updateOrderStatus
+                updateOrderStatus(orderId, status as OrderType["status"]);
+              }}
+              orders={filteredOrders}
+            />
             
             {/* Order sorting notice */}
             <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-center">
