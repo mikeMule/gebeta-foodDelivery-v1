@@ -599,7 +599,45 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getFoodItemsByRestaurant(restaurantId: number): Promise<FoodItem[]> {
-    return await db.select().from(foodItems).where(eq(foodItems.restaurantId, restaurantId));
+    try {
+      // Use raw SQL to get around schema mismatches
+      const query = sql`
+        SELECT * FROM food_items 
+        WHERE restaurant_id = ${restaurantId}
+      `;
+      
+      const result = await db.execute(query);
+      
+      if (!result.rows || result.rows.length === 0) {
+        return [];
+      }
+      
+      // Transform the raw data into our FoodItem type
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          restaurantId: row.restaurant_id,
+          name: row.name,
+          description: row.description,
+          categoryId: row.category_id || 0, // Handle missing categoryId
+          price: row.price,
+          imageUrl: row.image_url,
+          isAvailable: row.is_available,
+          isApproved: row.is_approved,
+          isSpecial: row.is_special || false,
+          isVegetarian: row.is_vegetarian || false,
+          isSpicy: row.is_spicy || false,
+          needsApproval: row.needs_approval || true,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          // Keep the text category as well for compatibility
+          category: row.category
+        } as FoodItem;
+      });
+    } catch (error) {
+      console.error("Error fetching food items by restaurant:", error);
+      return [];
+    }
   }
   
   async getFoodItemsByCategory(categoryId: number): Promise<FoodItem[]> {
@@ -607,8 +645,74 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createFoodItem(insertFoodItem: InsertFoodItem): Promise<FoodItem> {
-    const result = await db.insert(foodItems).values(insertFoodItem).returning();
-    return result[0];
+    try {
+      // Handle the case where we're transitioning from category string to categoryId
+      const data = { ...insertFoodItem };
+      
+      // If we have a category string coming in but no categoryId, 
+      // use the category string and ensure we save both for compatibility
+      if (!data.categoryId && data.category) {
+        // Just use the category text field for now
+        // In a production app, we would look up or create the category ID
+      }
+      
+      // Use raw SQL to insert with both fields
+      const query = sql`
+        INSERT INTO food_items (
+          restaurant_id, 
+          name, 
+          description,
+          category, 
+          category_id,
+          price, 
+          image_url, 
+          is_approved, 
+          is_available
+        ) VALUES (
+          ${data.restaurantId}, 
+          ${data.name}, 
+          ${data.description}, 
+          ${data.category || 'Uncategorized'},
+          ${data.categoryId || null},
+          ${data.price},
+          ${data.imageUrl || null},
+          ${data.isApproved ?? false},
+          ${data.isAvailable ?? true}
+        )
+        RETURNING *
+      `;
+      
+      const result = await db.execute(query);
+      
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error('Failed to create food item');
+      }
+      
+      const row = result.rows[0];
+      
+      // Transform DB row to FoodItem type
+      return {
+        id: row.id,
+        restaurantId: row.restaurant_id,
+        name: row.name,
+        description: row.description,
+        categoryId: row.category_id || 0,
+        category: row.category,
+        price: row.price,
+        imageUrl: row.image_url,
+        isAvailable: row.is_available,
+        isApproved: row.is_approved,
+        isSpecial: row.is_special || false,
+        isVegetarian: row.is_vegetarian || false,
+        isSpicy: row.is_spicy || false,
+        needsApproval: row.needs_approval || true,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      } as FoodItem;
+    } catch (error) {
+      console.error("Error creating food item:", error);
+      throw error;
+    }
   }
   
   async updateFoodItem(id: number, foodItemData: Partial<InsertFoodItem>): Promise<FoodItem> {
