@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/dialog";
 import { Icons } from "@/lib/icons";
 import { fadeIn, slideUp } from "@/lib/animation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 // Mock data types
 interface FoodItemType {
@@ -236,17 +238,18 @@ const RestaurantDashboard = () => {
   const [, setLocation] = useLocation();
   const { isAuthenticated, userData, logout } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // State for orders management
-  const [orders, setOrders] = useState<OrderType[]>(MOCK_ORDERS);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderFilter, setOrderFilter] = useState<string>("all");
   const [assignDeliveryDialogOpen, setAssignDeliveryDialogOpen] = useState(false);
   const [selectedDeliveryPartnerId, setSelectedDeliveryPartnerId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   
-  // State for menu management
-  const [menuItems] = useState<FoodItemType[]>(MOCK_MENU_ITEMS);
-
+  // Get the restaurant ID (in a real app, this would come from the auth context)
+  const restaurantId = 1; // Default to restaurant ID 1 for demo
+  
   // Authentication check
   useEffect(() => {
     if (!isAuthenticated || userData?.userType !== "restaurant_owner") {
@@ -254,19 +257,129 @@ const RestaurantDashboard = () => {
     }
   }, [isAuthenticated, userData, setLocation]);
 
+  // Fetch restaurant orders
+  const { 
+    data: ordersData = [], 
+    isLoading: ordersLoading,
+    error: ordersError 
+  } = useQuery({
+    queryKey: ['/api/restaurant', restaurantId, 'orders', orderFilter !== 'all' ? orderFilter : undefined],
+    queryFn: async () => {
+      const url = `/api/restaurant/${restaurantId}/orders${orderFilter !== 'all' ? `?status=${orderFilter}` : ''}`;
+      const response = await apiRequest('GET', url);
+      const data = await response.json();
+      return data;
+    },
+    enabled: isAuthenticated && userData?.userType === "restaurant_owner"
+  });
+
+  // Fetch restaurant menu items
+  const { 
+    data: menuItems = [], 
+    isLoading: menuLoading 
+  } = useQuery({
+    queryKey: ['/api/restaurants', restaurantId, 'food-items'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/restaurants/${restaurantId}/food-items`);
+      return await response.json();
+    },
+    enabled: isAuthenticated && userData?.userType === "restaurant_owner"
+  });
+
+  // Fetch restaurant statistics
+  const { 
+    data: statsData, 
+    isLoading: statsLoading 
+  } = useQuery({
+    queryKey: ['/api/restaurant', restaurantId, 'statistics'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/restaurant/${restaurantId}/statistics`);
+      return await response.json();
+    },
+    enabled: isAuthenticated && userData?.userType === "restaurant_owner"
+  });
+
+  // Mutation for updating order status
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
+      const response = await apiRequest('PATCH', `/api/orders/${orderId}/status`, { status });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurant', restaurantId, 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurant', restaurantId, 'statistics'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating order",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Mutation for assigning delivery partner
+  const assignDeliveryMutation = useMutation({
+    mutationFn: async ({ orderId, deliveryPartnerId }: { orderId: number, deliveryPartnerId: number }) => {
+      const response = await apiRequest('POST', `/api/orders/${orderId}/assign-delivery`, { deliveryPartnerId });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurant', restaurantId, 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurant', restaurantId, 'statistics'] });
+      setAssignDeliveryDialogOpen(false);
+      setSelectedDeliveryPartnerId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error assigning delivery partner",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Fetch delivery partners for a specific order
+  const { 
+    data: deliveryPartners = [], 
+    isLoading: deliveryPartnersLoading,
+    error: deliveryPartnersError
+  } = useQuery({
+    queryKey: ['/api/orders', selectedOrderId, 'delivery-partners'],
+    queryFn: async () => {
+      if (!selectedOrderId) return [];
+      const response = await apiRequest('GET', `/api/orders/${selectedOrderId}/delivery-partners`);
+      return await response.json();
+    },
+    enabled: assignDeliveryDialogOpen && !!selectedOrderId
+  });
+
   if (!isAuthenticated || userData?.userType !== "restaurant_owner") {
     return null; // Don't render anything if not authenticated
   }
 
+  const orders = ordersData as OrderType[];
   const selectedOrder = orders.find(order => order.id === selectedOrderId);
   
-  const filteredOrders = orders.filter(order => {
-    if (orderFilter === "all") return true;
-    return order.status === orderFilter;
-  }).sort((a, b) => {
-    // Sort by created time - oldest first (first come, first served)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
+  // Filter and sort orders
+  const filteredOrders = orders
+    .filter(order => {
+      // Text search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesOrder = order.id.toLowerCase().includes(query);
+        const matchesCustomer = order.customerName.toLowerCase().includes(query);
+        const matchesItems = order.orderItems.some(item => 
+          item.name.toLowerCase().includes(query)
+        );
+        return matchesOrder || matchesCustomer || matchesItems;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by created time - oldest first (first come, first served)
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
 
   const handleLogout = () => {
     logout();
@@ -278,45 +391,38 @@ const RestaurantDashboard = () => {
   };
 
   const updateOrderStatus = (orderId: string, newStatus: OrderType["status"]) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId 
-          ? { ...order, status: newStatus } 
-          : order
-      )
+    updateOrderStatusMutation.mutate(
+      { 
+        orderId: parseInt(orderId), 
+        status: newStatus 
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Order Updated",
+            description: `Order #${orderId} status changed to ${newStatus.replace("_", " ")}.`,
+          });
+        }
+      }
     );
-    
-    toast({
-      title: "Order Updated",
-      description: `Order #${orderId} status changed to ${newStatus.replace("_", " ")}.`,
-    });
   };
 
   const assignDeliveryPartner = (orderId: string, deliveryPartnerId: number) => {
-    const deliveryPartner = MOCK_DELIVERY_PARTNERS.find(dp => dp.id === deliveryPartnerId);
-    
-    if (deliveryPartner) {
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId 
-            ? { 
-                ...order, 
-                status: "out_for_delivery",
-                deliveryPartnerId: deliveryPartnerId,
-                estimatedDeliveryTime: "15-30 minutes"
-              } 
-            : order
-        )
-      );
-      
-      toast({
-        title: "Delivery Assigned",
-        description: `Order #${orderId} assigned to ${deliveryPartner.name}.`,
-      });
-      
-      setAssignDeliveryDialogOpen(false);
-      setSelectedDeliveryPartnerId(null);
-    }
+    assignDeliveryMutation.mutate(
+      { 
+        orderId: parseInt(orderId), 
+        deliveryPartnerId 
+      },
+      {
+        onSuccess: (data) => {
+          const partnerName = deliveryPartners.find(p => p.id === deliveryPartnerId)?.user?.fullName || "delivery partner";
+          toast({
+            title: "Delivery Assigned",
+            description: `Order #${orderId} assigned to ${partnerName}.`,
+          });
+        }
+      }
+    );
   };
 
   const getStatusBadge = (status: OrderType["status"]) => {
@@ -448,6 +554,8 @@ const RestaurantDashboard = () => {
                   <Input 
                     placeholder="Search orders..." 
                     className="pl-10 border-[#E5A764] focus:ring-[#8B572A]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </div>
