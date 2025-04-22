@@ -97,11 +97,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Just pass the data directly to the database
-    // No need to handle custom fields as they should be prepared properly before calling
     try {
+      // Handle restaurant owner metadata
+      const { restaurantId, restaurantName, ...userData } = insertUser as InsertUser & { 
+        restaurantId?: number;
+        restaurantName?: string;
+      };
+      
+      // If this is a restaurant owner with restaurant info, store in metadata
+      if (userData.userType === "restaurant_owner" && (restaurantId || restaurantName)) {
+        const metadataObj = { restaurantId, restaurantName };
+        userData.metadata = JSON.stringify(metadataObj);
+      }
+      
+      console.log("Creating user with metadata:", userData.metadata);
+      
       const result = await db.insert(users).values({
-        ...insertUser,
+        ...userData,
         createdAt: new Date()
       }).returning();
       
