@@ -23,9 +23,10 @@ import RestaurantDashboard from "@/pages/RestaurantDashboard";
 import { CartProvider } from "./store/CartContext";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import NavBar from "@/components/NavBar";
-// New imports for our WebSocket implementation
+// New imports for our WebSocket and location implementations
 import NotificationBellNew from "@/components/NotificationBellNew";
 import WebSocketStatusIndicator from "@/components/WebSocketStatusIndicator";
+import { LocationStatusBar } from "@/components/LocationStatusBar";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -79,11 +80,19 @@ function App() {
               <Splash />
             ) : (
               <>
-                {/* Global notification bell for authenticated users */}
+                {/* Global status indicators for authenticated users */}
                 {location !== "/login" && location !== "/otp-verification" && (
-                  <div className="fixed top-4 right-4 z-50">
-                    <WebSocketStatusIndicator />
-                  </div>
+                  <>
+                    {/* WebSocket status in top right */}
+                    <div className="fixed top-4 right-4 z-50">
+                      <WebSocketStatusIndicator />
+                    </div>
+                    
+                    {/* Location status bar at the top */}
+                    <div className="fixed top-4 left-4 z-50">
+                      <LocationStatusBar />
+                    </div>
+                  </>
                 )}
                 
                 <div className={shouldShowNavBar() ? "pb-20" : ""}>
