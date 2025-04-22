@@ -149,18 +149,54 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getRestaurantOwners(restaurantId: number): Promise<User[]> {
-    // Get all users with type "restaurant_owner" and matching restaurantId
-    return await db
-      .select()
-      .from(users)
-      .where(
-        and(
-          eq(users.userType, "restaurant_owner"),
-          // Note: In a production app, we would have a proper relationship table or column
-          // We're using a string comparison here as a simplified approach
-          sql`CAST(${users.metadata}->>'restaurantId' AS INTEGER) = ${restaurantId}`
-        )
-      );
+    try {
+      // Get all users with type "restaurant_owner" and matching restaurantId
+      const ownersResult = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          phoneNumber: users.phoneNumber,
+          password: users.password,
+          location: users.location,
+          fullName: users.fullName,
+          email: users.email,
+          idNumber: users.idNumber,
+          idVerified: users.idVerified,
+          userType: users.userType,
+          metadata: users.metadata,
+          createdAt: users.createdAt
+        })
+        .from(users)
+        .where(
+          and(
+            eq(users.userType, "restaurant_owner"),
+            // Using the metadata JSON field to check for restaurant ID
+            sql`CAST(${users.metadata}->>'restaurantId' AS INTEGER) = ${restaurantId}`
+          )
+        );
+      
+      // Convert database fields to User objects with the restaurantId property
+      return ownersResult.map(owner => {
+        let metadata = {};
+        try {
+          if (owner.metadata) {
+            metadata = JSON.parse(owner.metadata);
+          }
+        } catch (e) {
+          console.error("Error parsing owner metadata:", e);
+        }
+        
+        // Return User object with restaurantId from metadata
+        return {
+          ...owner,
+          restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId) : restaurantId,
+          restaurantName: metadata.restaurantName || null
+        } as User;
+      });
+    } catch (error) {
+      console.error("Error in getRestaurantOwners:", error);
+      return []; // Return empty array in case of error
+    }
   }
   
   // Food item methods
