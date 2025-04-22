@@ -327,6 +327,7 @@ const RestaurantDashboard = () => {
   // State for orders management
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderFilter, setOrderFilter] = useState<string>("all");
+  const [orderSortType, setOrderSortType] = useState<string>("queue"); // queue (first-come-first-serve) or priority
   const [assignDeliveryDialogOpen, setAssignDeliveryDialogOpen] = useState(false);
   const [selectedDeliveryPartnerId, setSelectedDeliveryPartnerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -570,8 +571,23 @@ const RestaurantDashboard = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sort by created time - oldest first (first come, first served)
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (orderSortType === 'priority') {
+        // Sort by priority (waiting time) - oldest orders first
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        const waitingTimeA = Date.now() - timeA;
+        const waitingTimeB = Date.now() - timeB;
+        
+        // First compare based on order status (new orders first)
+        if (a.status === 'new' && b.status !== 'new') return -1;
+        if (a.status !== 'new' && b.status === 'new') return 1;
+        
+        // Then by waiting time (longest waiting time first)
+        return waitingTimeB - waitingTimeA;
+      } else {
+        // Default: Sort by created time - oldest first (first come, first served)
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
     });
 
   const handleLogout = () => {
@@ -647,6 +663,39 @@ const RestaurantDashboard = () => {
         return { status: "out_for_delivery", label: "Assign Delivery" };
       default:
         return null;
+    }
+  };
+  
+  // Helper function to get priority indicator based on waiting time
+  const getPriorityIndicator = (createdAt: string) => {
+    const orderTime = new Date(createdAt).getTime();
+    const currentTime = new Date().getTime();
+    const waitingTimeInMinutes = Math.floor((currentTime - orderTime) / (1000 * 60));
+    
+    if (waitingTimeInMinutes >= 30) {
+      // High priority - waiting for 30+ minutes
+      return (
+        <div className="flex items-center mt-1" title={`Waiting for ${waitingTimeInMinutes} minutes`}>
+          <div className="h-2.5 w-2.5 rounded-full bg-red-500 mr-1 animate-pulse"></div>
+          <span className="text-xs text-red-500 font-medium">High Priority</span>
+        </div>
+      );
+    } else if (waitingTimeInMinutes >= 15) {
+      // Medium priority - waiting for 15-30 minutes
+      return (
+        <div className="flex items-center mt-1" title={`Waiting for ${waitingTimeInMinutes} minutes`}>
+          <div className="h-2.5 w-2.5 rounded-full bg-amber-500 mr-1"></div>
+          <span className="text-xs text-amber-500 font-medium">Medium Priority</span>
+        </div>
+      );
+    } else {
+      // Normal priority - waiting for less than 15 minutes
+      return (
+        <div className="flex items-center mt-1" title={`Waiting for ${waitingTimeInMinutes} minutes`}>
+          <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-1"></div>
+          <span className="text-xs text-green-500 font-medium">Normal Priority</span>
+        </div>
+      );
     }
   };
 
@@ -790,7 +839,7 @@ const RestaurantDashboard = () => {
           <TabsContent value="orders" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-[#4F2D1F]">Manage Orders</h2>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap space-x-2 gap-y-2">
                 <Select value={orderFilter} onValueChange={setOrderFilter}>
                   <SelectTrigger className="w-[180px] border-[#E5A764]">
                     <SelectValue placeholder="Filter orders" />
@@ -805,6 +854,27 @@ const RestaurantDashboard = () => {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Select value={orderSortType} onValueChange={setOrderSortType}>
+                  <SelectTrigger className="w-[180px] border-[#E5A764]">
+                    <SelectValue placeholder="Sort orders by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="queue">
+                      <div className="flex items-center">
+                        <Icons.clock className="mr-2 h-4 w-4" />
+                        First Come, First Serve
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="priority">
+                      <div className="flex items-center">
+                        <Icons.alertTriangle className="mr-2 h-4 w-4" />
+                        Priority (Urgent First)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                
                 <div className="relative">
                   <Icons.search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8B572A] h-4 w-4" />
                   <Input 
@@ -815,6 +885,27 @@ const RestaurantDashboard = () => {
                   />
                 </div>
               </div>
+            </div>
+            
+            {/* Order sorting notice */}
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-center">
+              {orderSortType === 'priority' ? (
+                <>
+                  <Icons.alertCircle className="h-5 w-5 text-amber-500 mr-2" />
+                  <div>
+                    <p className="text-amber-800 font-medium">Priority Mode</p>
+                    <p className="text-sm text-amber-700">Orders are sorted by urgency. High priority orders (older than 30 minutes) appear first.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Icons.clock className="h-5 w-5 text-[#8B572A] mr-2" />
+                  <div>
+                    <p className="text-[#4F2D1F] font-medium">First Come, First Serve Mode</p>
+                    <p className="text-sm text-[#8B572A]">Orders are processed in the sequence they were received. Oldest orders appear first.</p>
+                  </div>
+                </>
+              )}
             </div>
             
             {filteredOrders.length === 0 ? (
@@ -857,6 +948,9 @@ const RestaurantDashboard = () => {
                             <span className="text-xs text-muted-foreground">
                               Order #{index + 1} in queue
                             </span>
+                            {order.status !== "delivered" && order.status !== "cancelled" && 
+                              getPriorityIndicator(order.createdAt)
+                            }
                           </div>
                           <Badge variant="outline" className="font-normal">
                             {order.paymentMethod} • {order.paymentStatus === "completed" ? "Paid" : "Pending"}
@@ -1073,7 +1167,11 @@ const RestaurantDashboard = () => {
                     createdAt: editingFoodItem.createdAt || null,
                     updatedAt: editingFoodItem.updatedAt || null,
                     needsApproval: editingFoodItem.needsApproval || null,
-                    isApproved: editingFoodItem.isApproved || null
+                    isApproved: editingFoodItem.isApproved || null,
+                    isAvailable: editingFoodItem.isAvailable || null,
+                    isSpecial: editingFoodItem.isSpecial || null,
+                    isVegetarian: editingFoodItem.isVegetarian || null,
+                    isSpicy: editingFoodItem.isSpicy || null
                   } : undefined}
                   categories={categories}
                   onSubmit={(data) => {
