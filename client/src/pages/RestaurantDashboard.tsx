@@ -274,8 +274,8 @@ const RestaurantDashboard = () => {
   const [deletingFoodItemId, setDeletingFoodItemId] = useState<number | null>(null);
   const [menuSearchQuery, setMenuSearchQuery] = useState<string>("");
   
-  // Get the restaurant ID (in a real app, this would come from the auth context)
-  const restaurantId = 1; // Default to restaurant ID 1 for demo
+  // Get the restaurant ID from the authenticated user
+  const restaurantId = userData?.restaurantId || 1; // Get from user data, fallback to 1 if not available
 
   
   // Authentication check
