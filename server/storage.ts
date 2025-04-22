@@ -97,30 +97,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Handle restaurant owner metadata if provided
-    let userData = { ...insertUser };
-    
-    // Extract restaurantId and restaurantName if provided and store in metadata
-    if (userData.restaurantId || userData.restaurantName) {
-      const metadata: any = { 
-        restaurantId: userData.restaurantId,
-        restaurantName: userData.restaurantName
-      };
+    // Just pass the data directly to the database
+    // No need to handle custom fields as they should be prepared properly before calling
+    try {
+      const result = await db.insert(users).values({
+        ...insertUser,
+        createdAt: new Date()
+      }).returning();
       
-      // Set the metadata field
-      userData.metadata = JSON.stringify(metadata);
-      
-      // Remove the extra fields that are not in the users table schema
-      delete (userData as any).restaurantId;
-      delete (userData as any).restaurantName;
+      return result[0];
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error;
     }
-    
-    const result = await db.insert(users).values({
-      ...userData,
-      createdAt: new Date()
-    }).returning();
-    
-    return result[0];
   }
   
   // Restaurant methods

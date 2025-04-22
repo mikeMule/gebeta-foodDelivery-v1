@@ -449,6 +449,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create user with restaurant owner role
+      const metadata = JSON.stringify({
+        restaurantId,
+        restaurantName: restaurant.name
+      });
+      
       const user = await storage.createUser({
         username,
         password, // Note: In a real app, this should be properly hashed
@@ -456,8 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName,
         email: email || null,
         userType: "restaurant_owner",
-        restaurantId,
-        restaurantName: restaurant.name,
+        metadata
       });
       
       // Return the created user without password
