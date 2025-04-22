@@ -10,6 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Tabs,
@@ -36,6 +37,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { FoodItemForm } from "@/components/FoodItemForm";
+import { Textarea } from "@/components/ui/textarea";
 import { Icons } from "@/lib/icons";
 import { fadeIn, slideUp } from "@/lib/animation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -247,9 +260,14 @@ const RestaurantDashboard = () => {
   const [selectedDeliveryPartnerId, setSelectedDeliveryPartnerId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   
+  // State for food item management
+  const [foodItemFormOpen, setFoodItemFormOpen] = useState(false);
+  const [editingFoodItem, setEditingFoodItem] = useState<FoodItemType | null>(null);
+  const [deletingFoodItemId, setDeletingFoodItemId] = useState<number | null>(null);
+  const [menuSearchQuery, setMenuSearchQuery] = useState<string>("");
+  
   // Get the restaurant ID (in a real app, this would come from the auth context)
   const restaurantId = 1; // Default to restaurant ID 1 for demo
-  
 
   
   // Authentication check
@@ -355,6 +373,76 @@ const RestaurantDashboard = () => {
     },
     enabled: assignDeliveryDialogOpen && !!selectedOrderId
   });
+  
+  // Mutation for creating a new food item
+  const createFoodItemMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/food-items', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'food-items'] });
+      setFoodItemFormOpen(false);
+      toast({
+        title: "Food Item Added",
+        description: "The food item has been successfully added to your menu.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error adding food item",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutation for updating a food item
+  const updateFoodItemMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PATCH', `/api/food-items/${data.id}`, data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'food-items'] });
+      setFoodItemFormOpen(false);
+      setEditingFoodItem(null);
+      toast({
+        title: "Food Item Updated",
+        description: "The food item has been successfully updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating food item",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutation for deleting a food item
+  const deleteFoodItemMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/food-items/${id}`);
+      return id;
+    },
+    onSuccess: (id: number) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/restaurants', restaurantId, 'food-items'] });
+      setDeletingFoodItemId(null);
+      toast({
+        title: "Food Item Deleted",
+        description: "The food item has been successfully removed from your menu.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting food item",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
   if (!isAuthenticated || userData?.userType !== "restaurant_owner") {
     return null; // Don't render anything if not authenticated
@@ -362,6 +450,22 @@ const RestaurantDashboard = () => {
 
   const orders = ordersData as OrderType[];
   const selectedOrder = orders.find(order => order.id === selectedOrderId);
+  
+  // Get all unique categories from the menu items
+  const categories = Array.from(
+    new Set(menuItems.map((item: FoodItemType) => item.category))
+  ).sort();
+  
+  // Filter menu items based on search query
+  const filteredMenuItems = menuItems.filter((item: FoodItemType) => {
+    if (!menuSearchQuery) return true;
+    const query = menuSearchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query)
+    );
+  });
   
   // Filter and sort orders
   const filteredOrders = orders
@@ -684,55 +788,187 @@ const RestaurantDashboard = () => {
           <TabsContent value="menu" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-[#4F2D1F]">Manage Menu</h2>
-              <Button className="bg-[#8B572A] hover:bg-[#4F2D1F]">
-                <Icons.plus className="mr-2 h-4 w-4" />
-                Add New Item
-              </Button>
+              <div className="flex space-x-2">
+                <div className="relative">
+                  <Icons.search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8B572A] h-4 w-4" />
+                  <Input 
+                    placeholder="Search menu items..." 
+                    className="pl-10 border-[#E5A764] focus:ring-[#8B572A]"
+                    value={menuSearchQuery}
+                    onChange={(e) => setMenuSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  className="bg-[#8B572A] hover:bg-[#4F2D1F]"
+                  onClick={() => {
+                    setEditingFoodItem(null);
+                    setFoodItemFormOpen(true);
+                  }}
+                >
+                  <Icons.plus className="mr-2 h-4 w-4" />
+                  Add New Item
+                </Button>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {menuItems.map((item: FoodItemType, index: number) => (
-                <motion.div
-                  key={item.id}
-                  variants={fadeIn}
-                  initial="hidden"
-                  animate="visible"
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="bg-white h-full flex flex-col overflow-hidden">
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-48 w-full object-cover"
-                    />
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg text-[#4F2D1F]">{item.name}</CardTitle>
-                        <Badge variant="outline" className="font-normal text-[#8B572A]">
-                          {item.category}
+            {menuLoading ? (
+              <div className="flex justify-center items-center py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8B572A]"></div>
+              </div>
+            ) : filteredMenuItems.length === 0 ? (
+              <Card className="bg-white">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Icons.menu className="h-16 w-16 text-[#E5A764] mb-4" />
+                  <h3 className="text-lg font-semibold text-[#4F2D1F]">No Menu Items Found</h3>
+                  <p className="text-[#8B572A] text-center">
+                    {menuSearchQuery 
+                      ? "No items match your search criteria." 
+                      : "Add your first menu item to get started."}
+                  </p>
+                  {menuSearchQuery && (
+                    <Button 
+                      variant="link" 
+                      className="mt-2 text-[#8B572A]"
+                      onClick={() => setMenuSearchQuery("")}
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredMenuItems.map((item: FoodItemType, index: number) => (
+                  <motion.div
+                    key={item.id}
+                    variants={fadeIn}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className="bg-white h-full flex flex-col overflow-hidden">
+                      <div className="relative h-48">
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-48 w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                        <Badge className="absolute bottom-2 right-2 bg-[#E5A764] text-white border-transparent">
+                          {item.price.toLocaleString()} ETB
                         </Badge>
                       </div>
-                      <CardDescription>
-                        {item.price.toLocaleString()} ETB
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                      <p className="text-sm text-[#8B572A]">{item.description}</p>
-                    </CardContent>
-                    <div className="p-4 pt-0 flex space-x-2">
-                      <Button variant="outline" className="flex-1 border-[#8B572A] text-[#8B572A]">
-                        <Icons.pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button variant="outline" className="flex-1 border-red-300 text-red-500 hover:bg-red-50">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-lg text-[#4F2D1F]">{item.name}</CardTitle>
+                          <Badge variant="outline" className="font-normal text-[#8B572A]">
+                            {item.category}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <p className="text-sm text-[#8B572A]">{item.description}</p>
+                      </CardContent>
+                      <CardFooter className="p-4 pt-0 flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-[#8B572A] text-[#8B572A]"
+                          onClick={() => {
+                            setEditingFoodItem(item);
+                            setFoodItemFormOpen(true);
+                          }}
+                        >
+                          <Icons.pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 border-red-300 text-red-500 hover:bg-red-50"
+                          onClick={() => setDeletingFoodItemId(item.id)}
+                        >
+                          <Icons.trash className="mr-2 h-4 w-4" />
+                          Remove
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            
+            {/* Food Item Form Dialog */}
+            <Dialog open={foodItemFormOpen} onOpenChange={setFoodItemFormOpen}>
+              <DialogContent className="bg-white max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-[#4F2D1F]">
+                    {editingFoodItem ? "Edit Menu Item" : "Add New Menu Item"}
+                  </DialogTitle>
+                  <DialogDescription className="text-[#8B572A]">
+                    {editingFoodItem 
+                      ? "Update the details of this menu item." 
+                      : "Add a new item to your restaurant's menu."}
+                  </DialogDescription>
+                </DialogHeader>
+                <FoodItemForm
+                  restaurantId={restaurantId}
+                  foodItem={editingFoodItem || undefined}
+                  categories={categories}
+                  onSubmit={(data) => {
+                    if (editingFoodItem) {
+                      updateFoodItemMutation.mutate(data);
+                    } else {
+                      createFoodItemMutation.mutate(data);
+                    }
+                  }}
+                  isPending={createFoodItemMutation.isPending || updateFoodItemMutation.isPending}
+                  onCancel={() => {
+                    setFoodItemFormOpen(false);
+                    setEditingFoodItem(null);
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+            
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deletingFoodItemId} onOpenChange={(open) => !open && setDeletingFoodItemId(null)}>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-[#4F2D1F]">Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-[#8B572A]">
+                    This action cannot be undone. This will permanently remove this item from your menu.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel 
+                    className="border-[#8B572A] text-[#8B572A]"
+                    onClick={() => setDeletingFoodItemId(null)}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-red-500 hover:bg-red-600 text-white"
+                    onClick={() => {
+                      if (deletingFoodItemId) {
+                        deleteFoodItemMutation.mutate(deletingFoodItemId);
+                      }
+                    }}
+                    disabled={deleteFoodItemMutation.isPending}
+                  >
+                    {deleteFoodItemMutation.isPending ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-r-transparent"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
                         <Icons.trash className="mr-2 h-4 w-4" />
-                        Remove
-                      </Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
+                        Delete
+                      </>
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           {/* Delivery Partners Tab */}
