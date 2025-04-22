@@ -603,7 +603,7 @@ const RestaurantDashboard = () => {
           <div className="flex items-center space-x-2">
             <Icons.store className="h-8 w-8 text-[#8B572A]" />
             <div>
-              <h1 className="text-xl font-bold text-[#4F2D1F]">Restaurant Dashboard</h1>
+              <h1 className="text-xl font-bold text-[#4F2D1F]">{userData?.restaurantName || 'Restaurant'} Dashboard</h1>
               <p className="text-sm text-[#8B572A]">Welcome, {userData?.fullName || "Restaurant Owner"}</p>
             </div>
           </div>

@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only admins can create restaurant owners" });
       }
       
-      const { restaurantId, fullName, phoneNumber, email, username, password, userType } = req.body;
+      const { restaurantId, fullName, phoneNumber, email, username, password } = req.body;
       
       if (!restaurantId || !fullName || !phoneNumber || !username || !password) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -448,12 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
       
-      // Create user with restaurant owner role
-      const metadata = JSON.stringify({
-        restaurantId,
-        restaurantName: restaurant.name
-      });
+      console.log("Creating restaurant owner for restaurant:", restaurant.name);
       
+      // Create user with restaurant owner role and metadata containing restaurant info
       const user = await storage.createUser({
         username,
         password, // Note: In a real app, this should be properly hashed
@@ -461,12 +458,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName,
         email: email || null,
         userType: "restaurant_owner",
-        metadata
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name
       });
       
       // Return the created user without password
       const { password: _, ...userWithoutPassword } = user;
-      return res.status(201).json(userWithoutPassword);
+      
+      console.log("Restaurant owner created successfully:", userWithoutPassword);
+      
+      return res.status(201).json({
+        ...userWithoutPassword,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name
+      });
     } catch (error) {
       console.error("Error creating restaurant owner:", error);
       return res.status(500).json({ message: "Failed to create restaurant owner" });
@@ -526,12 +531,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: username,
             phoneNumber: "0911223344",
             fullName: "Restaurant Manager",
-            userType: "restaurant_owner"
+            userType: "restaurant_owner",
+            restaurantId: restaurant.id,
+            restaurantName: restaurant.name
           },
-          restaurant: {
-            id: restaurant.id,
-            name: restaurant.name
-          }
+          restaurant: restaurant
         });
       }
       
@@ -616,16 +620,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: username,
             phoneNumber: "0911223344",
             fullName: "Restaurant Manager",
-            userType: "restaurant_owner"
+            userType: "restaurant_owner",
+            restaurantId: restaurant.id,
+            restaurantName: restaurant.name
           },
-          restaurant: {
-            id: restaurant.id,
-            name: restaurant.name,
-            description: restaurant.description,
-            address: restaurant.address,
-            phone: restaurant.phone,
-            imageUrl: restaurant.imageUrl
-          }
+          restaurant: restaurant
         });
       }
     } catch (error) {

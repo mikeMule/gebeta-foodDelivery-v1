@@ -76,13 +76,15 @@ const RestaurantLogin = () => {
       
       console.log('Login response:', responseData);
       
-      // Update user data in Auth context
+      // Update user data in Auth context with all available restaurant data
       login({
+        id: responseData.user.id,
         phoneNumber: responseData.user.phoneNumber,
         fullName: responseData.user.fullName,
+        username: responseData.user.username,
         userType: responseData.user.userType,
-        restaurantId: responseData.restaurant.id,
-        restaurantName: responseData.restaurant.name
+        restaurantId: responseData.user.restaurantId || responseData.restaurant.id,
+        restaurantName: responseData.user.restaurantName || responseData.restaurant.name
       });
 
       toast({
