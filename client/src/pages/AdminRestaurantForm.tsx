@@ -28,29 +28,21 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
 
   useEffect(() => {
     // Fetch existing owners for this restaurant
-    fetch(`/api/restaurant/${restaurantId}/owners`)
-      .then(res => {
-        if (!res.ok) {
-          if (res.status === 404) {
-            // No owners API yet, just hide loading
-            setOwners([]);
-            setLoading(false);
-            return [];
-          }
-          throw new Error("Failed to fetch owners");
-        }
-        return res.json();
-      })
-      .then(data => {
-        if (data) {
-          setOwners(data);
-          setLoading(false);
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching owners:", error);
+    const fetchOwners = async () => {
+      try {
+        const data = await apiRequest("GET", `/api/restaurant/${restaurantId}/owners`)
+          .then(res => res.json());
+        setOwners(data);
         setLoading(false);
-      });
+      } catch (error) {
+        console.error("Error fetching owners:", error);
+        // If API endpoint not found or other error, just show empty state
+        setOwners([]);
+        setLoading(false);
+      }
+    };
+    
+    fetchOwners();
   }, [restaurantId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,25 +83,15 @@ function OwnerCredentialsForm({ restaurantId }: { restaurantId: number }) {
     setIsSubmitting(true);
     
     try {
-      const res = await fetch('/api/restaurant-owners', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          restaurantId,
-          fullName: formData.fullName,
-          phoneNumber: formData.phoneNumber,
-          email: formData.email,
-          username: generatedUsername,
-          password: generatedPassword,
-          userType: "restaurant_owner",
-        }),
+      const res = await apiRequest('POST', '/api/restaurant-owners', {
+        restaurantId,
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        username: generatedUsername,
+        password: generatedPassword,
+        userType: "restaurant_owner",
       });
-      
-      if (!res.ok) {
-        throw new Error("Failed to create owner account");
-      }
       
       const data = await res.json();
       
@@ -346,9 +328,11 @@ export default function AdminRestaurantForm() {
 
     // If editing existing restaurant, fetch data
     if (!isNew) {
-      fetch(`/api/restaurants/${id}`)
-        .then((res) => res.json())
-        .then((data) => {
+      const fetchRestaurantData = async () => {
+        try {
+          const data = await apiRequest("GET", `/api/restaurants/${id}`)
+            .then(res => res.json());
+          
           setFormData({
             name: data.name,
             description: data.description,
@@ -365,27 +349,31 @@ export default function AdminRestaurantForm() {
             phone: data.phone || "+251-11-111-1111",
             address: data.address || "Addis Ababa, Ethiopia",
           });
-          setLoading(false);
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching restaurant:", error);
           toast({
             title: "Error",
             description: "Failed to fetch restaurant data",
             variant: "destructive",
           });
+        } finally {
           setLoading(false);
-        });
+        }
+      };
 
       // Fetch food items for this restaurant
-      fetch(`/api/restaurants/${id}/food-items`)
-        .then((res) => res.json())
-        .then((data) => {
+      const fetchFoodItems = async () => {
+        try {
+          const data = await apiRequest("GET", `/api/restaurants/${id}/food-items`)
+            .then(res => res.json());
           setFoodItems(data);
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching food items:", error);
-        });
+        }
+      };
+      
+      fetchRestaurantData();
+      fetchFoodItems();
     }
   }, [isAuthenticated, userData, id, isNew, setLocation, toast]);
 

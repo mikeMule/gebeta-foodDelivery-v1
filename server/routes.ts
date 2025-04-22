@@ -507,30 +507,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
       
+      // Check if phone number already exists
+      const existingPhone = await storage.getUserByPhoneNumber(phoneNumber);
+      if (existingPhone) {
+        return res.status(400).json({ message: "Phone number already exists" });
+      }
+      
       console.log("Creating restaurant owner for restaurant:", restaurant.name);
       
-      // Create user with restaurant owner role and metadata containing restaurant info
-      const user = await storage.createUser({
-        username,
-        password, // Note: In a real app, this should be properly hashed
-        phoneNumber,
-        fullName,
-        email: email || null,
-        userType: "restaurant_owner",
-        restaurantId: restaurant.id,
-        restaurantName: restaurant.name
-      });
-      
-      // Return the created user without password
-      const { password: _, ...userWithoutPassword } = user;
-      
-      console.log("Restaurant owner created successfully:", userWithoutPassword);
-      
-      return res.status(201).json({
-        ...userWithoutPassword,
-        restaurantId: restaurant.id,
-        restaurantName: restaurant.name
-      });
+      try {
+        // Create user with restaurant owner role and metadata containing restaurant info
+        const user = await storage.createUser({
+          username,
+          password, // This will be hashed in the storage method
+          phoneNumber,
+          fullName,
+          email: email || null,
+          userType: "restaurant_owner",
+          restaurantId: restaurant.id,
+          restaurantName: restaurant.name
+        });
+        
+        // Return the created user without password
+        const { password: _, ...userWithoutPassword } = user;
+        
+        console.log("Restaurant owner created successfully:", userWithoutPassword);
+        
+        return res.status(201).json(userWithoutPassword);
+      } catch (createError) {
+        console.error("Database error creating restaurant owner:", createError);
+        return res.status(500).json({ 
+          message: "Database error creating restaurant owner", 
+          details: createError.message 
+        });
+      }
     } catch (error) {
       console.error("Error creating restaurant owner:", error);
       return res.status(500).json({ message: "Failed to create restaurant owner" });

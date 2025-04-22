@@ -211,16 +211,27 @@ export class DatabaseStorage implements IStorage {
       if (userData.userType === "restaurant_owner" && (restaurantId || restaurantName)) {
         const metadataObj = { restaurantId, restaurantName };
         userData.metadata = JSON.stringify(metadataObj);
+        console.log("Creating restaurant owner with metadata:", metadataObj);
       }
       
-      console.log("Creating user with metadata:", userData.metadata);
+      console.log("Creating user with data:", {
+        ...userData,
+        password: userData.password ? "****" : undefined  // Mask password in logs
+      });
       
       const result = await db.insert(users).values({
         ...userData,
         createdAt: new Date()
       }).returning();
       
-      return result[0];
+      // Create proper user object with additional fields from metadata
+      const metadata = parseMetadata(result[0].metadata);
+      
+      return {
+        ...result[0],
+        restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : undefined,
+        restaurantName: metadata.restaurantName as string || undefined,
+      } as User;
     } catch (error) {
       console.error("Error in createUser:", error);
       throw error;
