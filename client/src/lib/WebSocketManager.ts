@@ -75,11 +75,11 @@ class WebSocketManagerSingleton {
       console.log('WebSocketManager: Connecting to WebSocket server at', wsUrl);
       this.socket = new WebSocket(wsUrl);
       
-      // Set up event handlers
-      this.socket.onopen = this.handleOpen.bind(this);
-      this.socket.onmessage = this.handleMessage.bind(this);
-      this.socket.onclose = this.handleClose.bind(this);
-      this.socket.onerror = this.handleError.bind(this);
+      // Use addEventListener instead of direct property assignment for better error handling
+      this.socket.addEventListener('open', this.handleOpen.bind(this));
+      this.socket.addEventListener('message', this.handleMessage.bind(this));
+      this.socket.addEventListener('close', this.handleClose.bind(this));
+      this.socket.addEventListener('error', this.handleError.bind(this));
     } catch (error) {
       console.error('WebSocketManager: Error initializing WebSocket:', error);
       this.connectionState = ConnectionState.DISCONNECTED;
@@ -253,28 +253,47 @@ class WebSocketManagerSingleton {
   private cleanupSocket(): void {
     if (!this.socket) return;
     
-    // Remove event listeners
-    this.socket.onopen = null;
-    this.socket.onmessage = null;
-    this.socket.onclose = null;
-    this.socket.onerror = null;
-    
-    // Send disconnect message if connected
-    if (this.socket.readyState === WebSocket.OPEN) {
-      try {
-        this.socket.send(JSON.stringify({ type: 'client_disconnect' }));
-      } catch (error) {
-        console.error('WebSocketManager: Error sending disconnect message:', error);
+    // Since we're using addEventListener, we need to properly remove the event listeners
+    try {
+      // Store references to bound event handlers
+      const boundHandlers = {
+        open: this.handleOpen.bind(this),
+        message: this.handleMessage.bind(this),
+        close: this.handleClose.bind(this),
+        error: this.handleError.bind(this)
+      };
+      
+      // Remove event listeners properly
+      this.socket.removeEventListener('open', boundHandlers.open);
+      this.socket.removeEventListener('message', boundHandlers.message);
+      this.socket.removeEventListener('close', boundHandlers.close);
+      this.socket.removeEventListener('error', boundHandlers.error);
+      
+      // Also set these to null for extra safety
+      this.socket.onopen = null;
+      this.socket.onmessage = null;
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      
+      // Send disconnect message if connected
+      if (this.socket.readyState === WebSocket.OPEN) {
+        try {
+          this.socket.send(JSON.stringify({ type: 'client_disconnect' }));
+        } catch (error) {
+          console.error('WebSocketManager: Error sending disconnect message:', error);
+        }
       }
-    }
-    
-    // Close the socket if not already closed
-    if (this.socket.readyState !== WebSocket.CLOSED) {
-      try {
-        this.socket.close(1000, 'Client disconnecting normally');
-      } catch (error) {
-        console.error('WebSocketManager: Error closing WebSocket:', error);
+      
+      // Close the socket if not already closed
+      if (this.socket.readyState !== WebSocket.CLOSED) {
+        try {
+          this.socket.close(1000, 'Client disconnecting normally');
+        } catch (error) {
+          console.error('WebSocketManager: Error closing WebSocket:', error);
+        }
       }
+    } catch (error) {
+      console.error('WebSocketManager: Error cleaning up socket:', error);
     }
     
     this.socket = null;
