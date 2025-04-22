@@ -704,37 +704,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username and password are required" });
       }
       
-      // For demo purposes with the hardcoded credentials
-      if (username === 'abc' && password === 'abc@123') {
-        // Create a hardcoded restaurant owner response
-        const restaurantId = 1; // Default restaurant ID
+      // For demo purposes with various hardcoded credentials for different restaurants
+      // Map of demo username/password pairs to restaurant IDs
+      const demoCredentials: Record<string, {restaurantId: number, userId: number, fullName: string, phoneNumber: string}> = {
+        'abc': { 
+          restaurantId: 1, 
+          userId: 991, 
+          fullName: "Addis Ababa Restaurant Manager", 
+          phoneNumber: "0911223344" 
+        },
+        'xyz': { 
+          restaurantId: 2, 
+          userId: 992, 
+          fullName: "Lalibela Restaurant Manager", 
+          phoneNumber: "0922334455" 
+        },
+        'def': { 
+          restaurantId: 3, 
+          userId: 993, 
+          fullName: "Hawassa Restaurant Manager", 
+          phoneNumber: "0933445566" 
+        }
+      };
+      
+      // Function to create and return user data response
+      const createUserResponse = async (userData: any, restaurantId: number) => {
         const restaurant = await storage.getRestaurant(restaurantId);
         
         if (!restaurant) {
           return res.status(404).json({ message: "Restaurant not found" });
         }
         
-        const userData = {
-          id: 999, // Demo ID
-          username: username,
-          phoneNumber: "0911223344",
-          fullName: "Restaurant Manager",
-          userType: "restaurant_owner",
-          restaurantId: restaurant.id,
-          restaurantName: restaurant.name
-        };
-        
         // Set session data if available
         if (req.session) {
           req.session.userId = userData.id;
           req.session.userType = userData.userType;
-          req.session.restaurantId = userData.restaurantId;
+          req.session.restaurantId = userData.restaurantId || restaurant.id;
         }
         
         return res.status(200).json({
-          user: userData,
+          user: {
+            ...userData,
+            restaurantId: restaurantId,
+            restaurantName: restaurant.name
+          },
           restaurant: restaurant
         });
+      };
+      
+      // Check if using demo credentials
+      if (username in demoCredentials && password === `${username}@123`) {
+        const { restaurantId, userId, fullName, phoneNumber } = demoCredentials[username];
+        
+        const userData = {
+          id: userId,
+          username: username,
+          phoneNumber: phoneNumber,
+          fullName: fullName,
+          userType: "restaurant_owner",
+          restaurantId: restaurantId
+        };
+        
+        return await createUserResponse(userData, restaurantId);
       }
       
       // If not using hardcoded credentials, try the database
@@ -750,20 +781,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For now, we're skipping actual password check for demo
         
         // Determine which restaurant this owner is associated with
-        let restaurantId: number | null = null;
+        let restaurantId: number = 1; // Default fallback 
         let restaurantName: string | null = null;
         
         // Try to get restaurantId from various places
         
         // 1. First check for restaurant ID in user data
-        // TypeScript doesn't know about the extended User type with restaurantId
         const userAny = user as any;
         if (typeof userAny.restaurantId === 'number') {
           restaurantId = userAny.restaurantId;
-        }
-        
-        // 2. Check metadata if available
-        if (!restaurantId && user.metadata) {
+        } else if (user.metadata) {
+          // 2. Check metadata if available
           try {
             const metadata = JSON.parse(user.metadata);
             if (metadata.restaurantId) {
@@ -777,91 +805,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // 3. If still no restaurantId, check the restaurant owners table
-        if (!restaurantId) {
-          // Get a list of restaurants this user is an owner of
-          const restaurants = await storage.getAllRestaurants();
-          for (const rest of restaurants) {
-            const owners = await storage.getRestaurantOwners(rest.id);
-            if (owners.some(owner => owner.id === user.id)) {
-              restaurantId = rest.id;
-              break;
-            }
-          }
-        }
-        
-        // 4. If still no restaurant association, use default for demo
-        if (!restaurantId) {
-          restaurantId = 1; // Default for demo
-          console.log("No restaurant association found for user. Using default restaurant ID 1.");
-        }
-        
-        // Now get the restaurant data
-        const restaurant = await storage.getRestaurant(restaurantId);
-        if (!restaurant) {
-          return res.status(404).json({ message: "Restaurant not found" });
-        }
-        
-        // If no restaurant name yet, use the one from the restaurant object
-        if (!restaurantName) {
-          restaurantName = restaurant.name;
-        }
-        
-        // Create the user response data
-        const userData = {
+        return await createUserResponse({
           id: user.id,
           username: user.username,
           phoneNumber: user.phoneNumber || "",
           fullName: user.fullName || "",
           email: user.email || "",
-          userType: user.userType,
-          restaurantId: restaurantId,
-          restaurantName: restaurantName
-        };
-        
-        // Set session data if available
-        if (req.session) {
-          req.session.userId = userData.id;
-          req.session.userType = userData.userType;
-          req.session.restaurantId = userData.restaurantId;
-        }
-        
-        return res.status(200).json({
-          user: userData,
-          restaurant: restaurant
-        });
+          userType: user.userType
+        }, restaurantId);
         
       } catch (dbError) {
         console.error("Database error in restaurant login:", dbError);
-        // Fall back to the demo user if there's a database error
-        const restaurantId = 1;
-        const restaurant = await storage.getRestaurant(restaurantId);
         
-        if (!restaurant) {
-          return res.status(404).json({ message: "Restaurant not found" });
+        // Fallback to demo user
+        let fallbackRestaurantId = 1;
+        let fallbackUserId = 999;
+        let fallbackName = "Restaurant Manager";
+        let fallbackPhone = "0911223344";
+        
+        // Use demo credentials if username matches one
+        if (username in demoCredentials) {
+          const creds = demoCredentials[username];
+          fallbackRestaurantId = creds.restaurantId;
+          fallbackUserId = creds.userId;
+          fallbackName = creds.fullName;
+          fallbackPhone = creds.phoneNumber;
         }
         
-        const userData = {
-          id: 999, // Demo ID
+        return await createUserResponse({
+          id: fallbackUserId,
           username: username,
-          phoneNumber: "0911223344",
-          fullName: "Restaurant Manager",
-          userType: "restaurant_owner",
-          restaurantId: restaurant.id,
-          restaurantName: restaurant.name
-        };
-        
-        // Set session data if available
-        if (req.session) {
-          req.session.userId = userData.id;
-          req.session.userType = userData.userType;
-          req.session.restaurantId = userData.restaurantId;
-        }
-        
-        return res.status(200).json({
-          user: userData,
-          restaurant: restaurant
-        });
+          phoneNumber: fallbackPhone,
+          fullName: fallbackName,
+          userType: "restaurant_owner"
+        }, fallbackRestaurantId);
       }
     } catch (error) {
       console.error("Error in restaurant login:", error);
@@ -878,6 +855,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user is authorized to access this restaurant's orders
       if (req.user?.userType !== "restaurant_owner" && req.user?.userType !== "admin") {
         return res.status(403).json({ message: "Unauthorized to access restaurant orders" });
+      }
+      
+      // For restaurant owners, ensure they only access their own restaurant's orders
+      if (req.user?.userType === "restaurant_owner") {
+        // Get the user's restaurant ID from session
+        const userRestaurantId = req.session?.restaurantId;
+        
+        // If user is trying to access orders for a restaurant they don't own
+        if (userRestaurantId && userRestaurantId !== restaurantId) {
+          return res.status(403).json({ 
+            message: "Unauthorized: You can only view orders for your own restaurant" 
+          });
+        }
       }
       
       // Get all orders for this restaurant
