@@ -131,30 +131,35 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const result = await db.select({
-        id: users.id,
-        username: users.username,
-        phoneNumber: users.phoneNumber,
-        password: users.password,
-        location: users.location,
-        email: users.email,
-        idNumber: users.idNumber,
-        idVerified: users.idVerified,
-        userType: users.userType,
-        metadata: users.metadata,
-        createdAt: users.createdAt
-      })
-      .from(users)
-      .where(eq(users.username, username));
+      // Use raw SQL to avoid field name issues with camelCase vs snake_case
+      const result = await db.execute(
+        sql`SELECT * FROM users WHERE username = ${username}`
+      );
       
-      if (!result.length) return undefined;
+      if (!result.rows || result.rows.length === 0) return undefined;
+      
+      // Map the raw database row to our User type
+      const user = {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        phoneNumber: result.rows[0].phone_number,
+        password: result.rows[0].password,
+        location: result.rows[0].location,
+        fullName: result.rows[0].full_name,
+        email: result.rows[0].email,
+        idNumber: result.rows[0].id_number,
+        idVerified: result.rows[0].id_verified,
+        userType: result.rows[0].user_type,
+        metadata: result.rows[0].metadata,
+        createdAt: result.rows[0].created_at
+      };
       
       // Process metadata using our helper function
-      const metadata = parseMetadata(result[0].metadata);
+      const metadata = parseMetadata(user.metadata);
       
       // Return the user with metadata fields
       return {
-        ...result[0],
+        ...user,
         restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : undefined,
         restaurantName: metadata.restaurantName as string || undefined
       } as User;
@@ -166,30 +171,35 @@ export class DatabaseStorage implements IStorage {
   
   async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
     try {
-      const result = await db.select({
-        id: users.id,
-        username: users.username,
-        phoneNumber: users.phoneNumber,
-        password: users.password,
-        location: users.location,
-        email: users.email,
-        idNumber: users.idNumber,
-        idVerified: users.idVerified,
-        userType: users.userType,
-        metadata: users.metadata,
-        createdAt: users.createdAt
-      })
-      .from(users)
-      .where(eq(users.phoneNumber, phoneNumber));
+      // Use raw SQL to avoid field name issues with camelCase vs snake_case
+      const result = await db.execute(
+        sql`SELECT * FROM users WHERE phone_number = ${phoneNumber}`
+      );
       
-      if (!result.length) return undefined;
+      if (!result.rows || result.rows.length === 0) return undefined;
+      
+      // Map the raw database row to our User type
+      const user = {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        phoneNumber: result.rows[0].phone_number,
+        password: result.rows[0].password,
+        location: result.rows[0].location,
+        fullName: result.rows[0].full_name,
+        email: result.rows[0].email,
+        idNumber: result.rows[0].id_number,
+        idVerified: result.rows[0].id_verified,
+        userType: result.rows[0].user_type,
+        metadata: result.rows[0].metadata,
+        createdAt: result.rows[0].created_at
+      };
       
       // Process metadata using our helper function
-      const metadata = parseMetadata(result[0].metadata);
+      const metadata = parseMetadata(user.metadata);
       
       // Return the user with metadata fields
       return {
-        ...result[0],
+        ...user,
         restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : undefined,
         restaurantName: metadata.restaurantName as string || undefined
       } as User;
@@ -214,21 +224,65 @@ export class DatabaseStorage implements IStorage {
         console.log("Creating restaurant owner with metadata:", metadataObj);
       }
       
+      // Map camelCase to snake_case for database columns
+      // We need to do this explicitly since the actual column names are snake_case in the DB
+      const query = sql`
+        INSERT INTO users (
+          username, phone_number, password, location, full_name, 
+          email, id_number, id_verified, user_type, metadata, created_at
+        ) 
+        VALUES (
+          ${userData.username}, 
+          ${userData.phoneNumber}, 
+          ${userData.password}, 
+          ${userData.location || null}, 
+          ${userData.fullName || null},
+          ${userData.email || null}, 
+          ${userData.idNumber || null}, 
+          ${false}, 
+          ${userData.userType || 'customer'}, 
+          ${userData.metadata || '{}'}, 
+          ${new Date()}
+        )
+        RETURNING *
+      `;
+      
       console.log("Creating user with data:", {
-        ...userData,
-        password: userData.password ? "****" : undefined  // Mask password in logs
+        username: userData.username,
+        phoneNumber: userData.phoneNumber,
+        password: "****", // Mask password in logs
+        userType: userData.userType,
+        fullName: userData.fullName
       });
       
-      const result = await db.insert(users).values({
-        ...userData,
-        createdAt: new Date()
-      }).returning();
+      // Execute the SQL query
+      const result = await db.execute(query);
       
-      // Create proper user object with additional fields from metadata
-      const metadata = parseMetadata(result[0].metadata);
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error("Failed to create user - no result returned");
+      }
+      
+      // Map the raw database row to our User type
+      const user = {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        phoneNumber: result.rows[0].phone_number,
+        password: result.rows[0].password,
+        location: result.rows[0].location,
+        fullName: result.rows[0].full_name,
+        email: result.rows[0].email,
+        idNumber: result.rows[0].id_number,
+        idVerified: result.rows[0].id_verified,
+        userType: result.rows[0].user_type,
+        metadata: result.rows[0].metadata,
+        createdAt: result.rows[0].created_at
+      };
+      
+      // Process metadata using our helper function
+      const metadata = parseMetadata(user.metadata);
       
       return {
-        ...result[0],
+        ...user,
         restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId as string) : undefined,
         restaurantName: metadata.restaurantName as string || undefined,
       } as User;
