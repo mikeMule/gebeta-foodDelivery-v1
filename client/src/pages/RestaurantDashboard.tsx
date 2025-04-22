@@ -868,7 +868,7 @@ const RestaurantDashboard = () => {
                     </SelectItem>
                     <SelectItem value="priority">
                       <div className="flex items-center">
-                        <Icons.alertTriangle className="mr-2 h-4 w-4" />
+                        <Icons.alertCircle className="mr-2 h-4 w-4 text-amber-500" />
                         Priority (Urgent First)
                       </div>
                     </SelectItem>
