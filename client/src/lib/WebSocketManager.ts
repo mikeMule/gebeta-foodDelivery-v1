@@ -309,7 +309,8 @@ export function useWebSocketManager(options?: WebSocketConnectionOptions): {
   subscribe: (subscription: WebSocketSubscription) => () => void;
 } {
   const auth = useAuth();
-  const userData = auth.userData || auth.user; // Account for different properties in different auth hooks
+  // Account for different auth hook implementations
+  const userData = auth.userData || (auth as any).user;
   
   // Initialize the WebSocket connection when the component mounts
   useEffect(() => {

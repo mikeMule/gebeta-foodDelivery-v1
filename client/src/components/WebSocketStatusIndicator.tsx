@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const WebSocketStatusIndicator: React.FC = () => {
   const auth = useAuth();
   const isAuthenticated = auth.isAuthenticated;
-  const userData = auth.userData || auth.user;
+  const userData = auth.userData || (auth as any).user;
   const { connectionState } = useWebSocketManager();
   
   if (!isAuthenticated) {

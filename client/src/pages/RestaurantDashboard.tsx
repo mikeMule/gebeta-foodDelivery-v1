@@ -55,15 +55,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import NotificationBell from "@/components/NotificationBell";
 
-// Food item data type that matches the database schema
+// Food item data type that matches the database schema and FoodItem interface from @shared/schema
 interface FoodItemType {
   id: number;
   name: string;
   price: number;
   description: string;
-  category: string;
+  category?: string; // Used in the form only
+  categoryId: number;
   imageUrl: string;
   restaurantId: number;
+  isAvailable?: boolean;
+  isSpecial?: boolean;
+  isVegetarian?: boolean;
+  isSpicy?: boolean;
+  needsApproval?: boolean | null;
+  isApproved?: boolean | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 interface OrderItemType {
@@ -205,8 +214,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 180,
     description: "Ethiopian spicy chicken stew, served with injera",
     category: "Main Course",
+    categoryId: 1,
     imageUrl: "https://images.unsplash.com/photo-1583295125721-766a0088cd3f?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: false,
+    isVegetarian: false,
+    isSpicy: true,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: 2,
@@ -214,8 +232,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 250,
     description: "Sautéed meat and vegetables, flavored with Ethiopian spices",
     category: "Main Course",
+    categoryId: 1,
     imageUrl: "https://images.unsplash.com/photo-1628516794933-0a82ecefcaff?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: false,
+    isVegetarian: false,
+    isSpicy: false,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: 3,
@@ -223,8 +250,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 320,
     description: "Ethiopian style steak tartare served with injera",
     category: "Main Course",
+    categoryId: 1,
     imageUrl: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: true,
+    isVegetarian: false,
+    isSpicy: true,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: 4,
@@ -232,8 +268,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 120,
     description: "Spiced chickpea stew, vegan friendly",
     category: "Sides",
+    categoryId: 2,
     imageUrl: "https://images.unsplash.com/photo-1531487907503-47fb3ce703b5?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: false,
+    isVegetarian: true,
+    isSpicy: false,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: 5,
@@ -241,8 +286,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 15,
     description: "Traditional Ethiopian sourdough flatbread",
     category: "Bread",
+    categoryId: 3,
     imageUrl: "https://images.unsplash.com/photo-1580467559977-a7e899a2a0dc?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: false,
+    isVegetarian: true,
+    isSpicy: false,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   },
   {
     id: 6,
@@ -250,8 +304,17 @@ const MOCK_MENU_ITEMS: FoodItemType[] = [
     price: 80,
     description: "Ethiopian honey wine",
     category: "Drinks",
+    categoryId: 4,
     imageUrl: "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=300",
-    restaurantId: 1
+    restaurantId: 1,
+    isAvailable: true,
+    isSpecial: false,
+    isVegetarian: true,
+    isSpicy: false,
+    needsApproval: false,
+    isApproved: true,
+    createdAt: new Date(),
+    updatedAt: null
   }
 ];
 
