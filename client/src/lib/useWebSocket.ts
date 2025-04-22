@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  data?: any;
+}
+
 interface WebSocketOptions {
   userId?: number;
   userType?: string;
@@ -10,11 +20,19 @@ interface WebSocketOptions {
   retryInterval?: number;
 }
 
+const STORAGE_KEY = 'gebeta_notifications';
+
 export const useWebSocket = (options: WebSocketOptions = {}) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  
+  // Load notifications from localStorage on initial render
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const storageKey = `${STORAGE_KEY}_${options.userId || ''}_${options.userType || ''}_${options.restaurantId || ''}`;
+    const storedNotifications = localStorage.getItem(storageKey);
+    return storedNotifications ? JSON.parse(storedNotifications) : [];
+  });
   
   const {
     userId,
@@ -82,7 +100,12 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
           
           // Add to notifications array if it's a notification
           if (data.type && data.title && data.message) {
-            setNotifications(prev => [data, ...prev]);
+            const newNotifications = [data, ...notifications];
+            setNotifications(newNotifications);
+            
+            // Persist to localStorage
+            const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
+            localStorage.setItem(storageKey, JSON.stringify(newNotifications));
           }
           
           // Call custom handler if provided
@@ -132,15 +155,40 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     return false;
   }, [socket, isConnected]);
   
+  // Persist notifications to localStorage
+  const persistNotifications = useCallback((notifications: Notification[]) => {
+    const storageKey = `${STORAGE_KEY}_${userId || ''}_${userType || ''}_${restaurantId || ''}`;
+    localStorage.setItem(storageKey, JSON.stringify(notifications));
+  }, [userId, userType, restaurantId]);
+
+  // Mark a notification as read
+  const markAsRead = useCallback((notificationId: string) => {
+    const updatedNotifications = notifications.map(n => 
+      n.id === notificationId ? { ...n, read: true } : n
+    );
+    setNotifications(updatedNotifications);
+    persistNotifications(updatedNotifications);
+  }, [notifications, persistNotifications]);
+
+  // Mark all notifications as read
+  const markAllAsRead = useCallback(() => {
+    const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+    setNotifications(updatedNotifications);
+    persistNotifications(updatedNotifications);
+  }, [notifications, persistNotifications]);
+
   // Clear a notification by id
   const clearNotification = useCallback((notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-  }, []);
+    const filtered = notifications.filter(n => n.id !== notificationId);
+    setNotifications(filtered);
+    persistNotifications(filtered);
+  }, [notifications, persistNotifications]);
   
   // Clear all notifications
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
-  }, []);
+    persistNotifications([]);
+  }, [persistNotifications]);
   
   return {
     socket,
@@ -150,6 +198,8 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
     sendMessage,
     clearNotification,
     clearAllNotifications,
+    markAsRead,
+    markAllAsRead,
     connect
   };
 };

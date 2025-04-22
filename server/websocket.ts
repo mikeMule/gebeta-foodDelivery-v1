@@ -75,10 +75,15 @@ export function sendNotification(notification: {
     return true;
   });
 
+  // Generate a unique ID for this notification
+  const notificationId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  
   // Send the notification to all matching connections
   const payload = JSON.stringify({
     ...notification,
-    timestamp: new Date().toISOString()
+    id: notificationId,
+    timestamp: new Date().toISOString(),
+    read: false // Initialize as unread
   });
 
   matchingConnections.forEach(conn => {

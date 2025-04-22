@@ -53,6 +53,7 @@ import { Icons } from "@/lib/icons";
 import { fadeIn, slideUp } from "@/lib/animation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import NotificationBell from "@/components/NotificationBell";
 
 // Food item data type that matches the database schema
 interface FoodItemType {
@@ -617,6 +618,11 @@ const RestaurantDashboard = () => {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            <NotificationBell 
+              userType="restaurant_owner"
+              restaurantId={restaurantId}
+              userId={userData?.id}
+            />
             <Button variant="outline" onClick={handleLogout} className="bg-transparent text-white border-white hover:bg-white/10">
               <Icons.logOut className="mr-2 h-4 w-4" />
               Logout

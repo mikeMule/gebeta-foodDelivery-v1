@@ -32,8 +32,22 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     onMessage: (data) => {
       // Play sound for new notifications
       if (data.type && data.title) {
-        const audio = new Audio('/notification-sound.mp3');
-        audio.play().catch(err => console.error('Error playing notification sound:', err));
+        try {
+          // Check if notification sound exists (using fetch to check existence)
+          fetch('/notification-sound.mp3', { method: 'HEAD' })
+            .then(response => {
+              if (response.ok) {
+                const audio = new Audio('/notification-sound.mp3');
+                audio.volume = 0.5; // Set volume to 50%
+                audio.play().catch(err => console.error('Error playing notification sound:', err));
+              }
+            })
+            .catch(() => {
+              console.log('Notification sound file not found');
+            });
+        } catch (error) {
+          console.error('Error with notification sound:', error);
+        }
         
         // Show toast notification
         toast({
