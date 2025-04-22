@@ -20,12 +20,12 @@ interface NotificationBellProps {
   restaurantId?: number;
 }
 
-export const NotificationBell: React.FC<NotificationBellProps> = ({
+const NotificationBell: React.FC<NotificationBellProps> = ({
   userId,
   userType,
   restaurantId
 }) => {
-  const { notifications, clearNotification, clearAllNotifications } = useWebSocket({
+  const { notifications, clearNotification, clearAllNotifications, markAsRead, markAllAsRead } = useWebSocket({
     userId,
     userType,
     restaurantId,
@@ -63,16 +63,19 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [animating, setAnimating] = useState(false);
   
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
   // Animate the bell when a new notification arrives
   useEffect(() => {
-    if (notifications.length > 0) {
+    if (unreadCount > 0) {
       setAnimating(true);
       const timer = setTimeout(() => {
         setAnimating(false);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [notifications.length]);
+  }, [unreadCount]);
   
   // Format the timestamp to a readable format
   const formatTime = (timestamp: string) => {
@@ -98,12 +101,12 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           ) : (
             <Bell className="h-5 w-5" />
           )}
-          {notifications.length > 0 && (
+          {unreadCount > 0 && (
             <Badge 
               className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 p-0"
               variant="destructive"
             >
-              {notifications.length}
+              {unreadCount}
             </Badge>
           )}
         </Button>
@@ -112,14 +115,24 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         <DropdownMenuLabel className="flex justify-between items-center">
           <span>Notifications</span>
           {notifications.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => clearAllNotifications()}
-              className="text-xs h-8"
-            >
-              Clear all
-            </Button>
+            <div className="flex space-x-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => markAllAsRead()}
+                className="text-xs h-8"
+              >
+                Mark all read
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => clearAllNotifications()}
+                className="text-xs h-8"
+              >
+                Clear all
+              </Button>
+            </div>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -132,22 +145,42 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
             {notifications.slice(0, 5).map((notif, index) => (
               <DropdownMenuItem 
                 key={index} 
-                className="flex flex-col items-start p-3 cursor-default hover:bg-accent"
+                className={cn(
+                  "flex flex-col items-start p-3 cursor-default hover:bg-accent",
+                  !notif.read && "bg-muted/40"
+                )}
                 onSelect={(e) => e.preventDefault()}
               >
                 <div className="flex justify-between w-full">
-                  <span className="font-medium">{notif.title}</span>
+                  <div className="flex items-center">
+                    {!notif.read && (
+                      <div className="w-2 h-2 rounded-full bg-primary mr-1.5" />
+                    )}
+                    <span className={cn("font-medium", !notif.read && "font-semibold")}>{notif.title}</span>
+                  </div>
                   <span className="text-xs text-muted-foreground">{formatTime(notif.timestamp)}</span>
                 </div>
                 <p className="text-sm mt-1 text-muted-foreground">{notif.message}</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-1 h-auto p-0 text-xs self-end" 
-                  onClick={() => clearNotification(notif.id)}
-                >
-                  Dismiss
-                </Button>
+                <div className="flex justify-end w-full mt-1 space-x-2">
+                  {!notif.read && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="h-auto p-0 text-xs" 
+                      onClick={() => markAsRead(notif.id)}
+                    >
+                      Mark as read
+                    </Button>
+                  )}
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-xs" 
+                    onClick={() => clearNotification(notif.id)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
               </DropdownMenuItem>
             ))}
             {notifications.length > 5 && (
