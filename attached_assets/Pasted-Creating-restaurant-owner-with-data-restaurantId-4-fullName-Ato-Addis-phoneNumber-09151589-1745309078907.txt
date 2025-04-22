@@ -1,0 +1,47 @@
+Creating restaurant owner with data: {restaurantId: 4, fullName: 'Ato Addis', phoneNumber: '0915158955'}fullName: "Ato Addis"phoneNumber: "0915158955"restaurantId: 4[[Prototype]]: Objectconstructor: ƒ Object()hasOwnProperty: ƒ hasOwnProperty()isPrototypeOf: ƒ isPrototypeOf()propertyIsEnumerable: ƒ propertyIsEnumerable()toLocaleString: ƒ toLocaleString()toString: ƒ toString()valueOf: ƒ valueOf()__defineGetter__: ƒ __defineGetter__()__defineSetter__: ƒ __defineSetter__()__lookupGetter__: ƒ __lookupGetter__()__lookupSetter__: ƒ __lookupSetter__()__proto__: (...)get __proto__: ƒ __proto__()set __proto__: ƒ __proto__()
+queryClient.ts:37 
+            
+            
+           POST https://f0979d71-0ba0-4c55-a765-06e8b52cc443-00-2614aop8vrvte.worf.replit.dev/api/restaurant-owners 500 (Internal Server Error)
+apiRequest @ queryClient.ts:37
+handleSubmit @ AdminRestaurantForm.tsx:92
+callCallback2 @ chunk-WERSD76P.js?v=5b9d9921:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=5b9d9921:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=5b9d9921:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=5b9d9921:3736
+executeDispatch @ chunk-WERSD76P.js?v=5b9d9921:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=5b9d9921:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=5b9d9921:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=5b9d9921:7051
+(anonymous) @ chunk-WERSD76P.js?v=5b9d9921:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=5b9d9921:18913
+batchedUpdates @ chunk-WERSD76P.js?v=5b9d9921:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=5b9d9921:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=5b9d9921:5478
+dispatchEvent @ chunk-WERSD76P.js?v=5b9d9921:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=5b9d9921:5449
+AdminRestaurantForm.tsx:122 Error creating owner account: Error: 500: {"message":"Database error creating restaurant owner","details":"column \"full_name\" of relation \"users\" does not exist"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:44:3)
+    at async handleSubmit (AdminRestaurantForm.tsx:92:19)
+handleSubmit @ AdminRestaurantForm.tsx:122
+await in handleSubmit
+callCallback2 @ chunk-WERSD76P.js?v=5b9d9921:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=5b9d9921:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=5b9d9921:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=5b9d9921:3736
+executeDispatch @ chunk-WERSD76P.js?v=5b9d9921:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=5b9d9921:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=5b9d9921:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=5b9d9921:7051
+(anonymous) @ chunk-WERSD76P.js?v=5b9d9921:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=5b9d9921:18913
+batchedUpdates @ chunk-WERSD76P.js?v=5b9d9921:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=5b9d9921:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=5b9d9921:5478
+dispatchEvent @ chunk-WERSD76P.js?v=5b9d9921:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=5b9d9921:5449
+VM6581 content.bundle.js:1 
+            
+            
+           POST https://browser.pipe.aria.microsoft.com/Collector/3.0/?qsp=true&content-type=application%2Fbond-compact-binary&client-id=NO_AUTH&sdk-version=AWT-Web-JS-1.8.9&x-apikey=a9e41ae2776b450a9695dc7cd14b0cbc-2c64d683-4d9f-4309-9247-ddc49216e17a-7112&client-time-epoch-millis=1745309060555&time-delta-to-apply-millis=use-collector-delta net::ERR_BLOCKED_BY_CLIENT
