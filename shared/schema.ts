@@ -131,6 +131,7 @@ export const insertOrderSchema = createInsertSchema(orders).pick({
   deliveryAddress: true,
   deliveryLatitude: true,
   deliveryLongitude: true,
+  updatedAt: true,
 });
 
 // Order items table

@@ -558,10 +558,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (user.metadata) {
             const metadata = JSON.parse(user.metadata);
             if (metadata.restaurantId) {
-              restaurantId = metadata.restaurantId;
+              userRestaurantId = metadata.restaurantId;
               // If the restaurant ID is different from the default one, fetch the correct restaurant
-              if (restaurantId !== restaurant.id) {
-                const userRestaurant = await storage.getRestaurant(restaurantId);
+              if (userRestaurantId !== restaurant.id) {
+                const userRestaurant = await storage.getRestaurant(userRestaurantId);
                 if (userRestaurant) {
                   restaurant = userRestaurant;
                   restaurantName = restaurant.name;
@@ -584,7 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fullName: user.fullName,
             email: user.email,
             userType: user.userType,
-            restaurantId,
+            restaurantId: userRestaurantId,
             restaurantName
           },
           restaurant: {
@@ -651,7 +651,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sort by creation time (oldest first - first come, first served)
       const sortedOrders = filteredOrders.sort((a, b) => {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date();
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date();
+        return dateA.getTime() - dateB.getTime();
       });
       
       // Enrich orders with order items and customer data
@@ -865,7 +867,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Today's orders
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayOrders = allOrders.filter(order => new Date(order.createdAt) >= today);
+      const todayOrders = allOrders.filter(order => {
+        const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+        return orderDate && orderDate >= today;
+      });
       const todayRevenue = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
       
       return res.status(200).json({
