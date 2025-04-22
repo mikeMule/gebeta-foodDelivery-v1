@@ -28,13 +28,19 @@ export default function AdminLogin() {
     // In a real app, this would call an API endpoint to authenticate
     // For now, using simple validation for admin access
     if (username === "admin" && password === "admin123") {
-      login({
+      const userData = {
+        id: 999, // Admin ID
         phoneNumber: "admin",
         userType: "admin",
         fullName: "Restaurant Admin",
-      });
+        username: "admin"
+      };
       
+      login(userData);
       verifyOtp("admin"); // Bypass OTP for admin
+      
+      // Set session cookie or authentication header for API requests
+      localStorage.setItem('adminAuth', 'true');
       
       toast({
         title: "Success",

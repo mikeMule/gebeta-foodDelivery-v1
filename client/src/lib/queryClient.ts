@@ -12,9 +12,31 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Prepare headers with authentication if available
+  const headers: Record<string, string> = data 
+    ? { "Content-Type": "application/json" } 
+    : {};
+    
+  // Add authorization header for admin endpoints if admin is logged in
+  if (localStorage.getItem('adminAuth') === 'true') {
+    headers['X-Admin-Auth'] = 'true';
+  }
+  
+  // Add authorization header if user is authenticated
+  const userData = localStorage.getItem('userData');
+  if (userData) {
+    const user = JSON.parse(userData);
+    if (user.userType) {
+      headers['X-User-Type'] = user.userType;
+      if (user.id) {
+        headers['X-User-ID'] = user.id.toString();
+      }
+    }
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,8 +51,29 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Prepare headers with authentication if available
+    const headers: Record<string, string> = {};
+    
+    // Add authorization header for admin endpoints if admin is logged in
+    if (localStorage.getItem('adminAuth') === 'true') {
+      headers['X-Admin-Auth'] = 'true';
+    }
+    
+    // Add authorization header if user is authenticated
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      const user = JSON.parse(userData);
+      if (user.userType) {
+        headers['X-User-Type'] = user.userType;
+        if (user.id) {
+          headers['X-User-ID'] = user.id.toString();
+        }
+      }
+    }
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
