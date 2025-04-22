@@ -15,6 +15,21 @@ declare module 'express-session' {
   }
 }
 
+// Helper function to set session data
+function setSessionData(
+  session: session.Session & Partial<session.SessionData>,
+  userId: number,
+  userType: string,
+  restaurantId?: number
+) {
+  const sessionAny = session as any;
+  sessionAny.userId = userId;
+  sessionAny.userType = userType;
+  if (restaurantId) {
+    sessionAny.restaurantId = restaurantId;
+  }
+}
+
 // Add user to Request type
 declare global {
   namespace Express {

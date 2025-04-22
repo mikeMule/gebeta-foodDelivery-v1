@@ -82,18 +82,132 @@ export class DatabaseStorage implements IStorage {
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: users.id,
+        username: users.username,
+        phoneNumber: users.phoneNumber,
+        password: users.password,
+        location: users.location,
+        fullName: users.fullName,
+        email: users.email,
+        idNumber: users.idNumber,
+        idVerified: users.idVerified,
+        userType: users.userType,
+        metadata: users.metadata,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .where(eq(users.id, id));
+      
+      if (!result.length) return undefined;
+      
+      // Process metadata if it exists
+      let metadata = {};
+      try {
+        if (result[0].metadata) {
+          metadata = JSON.parse(result[0].metadata);
+        }
+      } catch (e) {
+        console.error("Error parsing user metadata:", e);
+      }
+      
+      // Return the user with metadata fields
+      return {
+        ...result[0],
+        restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId) : undefined,
+        restaurantName: metadata.restaurantName || undefined
+      } as User;
+    } catch (error) {
+      console.error("Error in getUser:", error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: users.id,
+        username: users.username,
+        phoneNumber: users.phoneNumber,
+        password: users.password,
+        location: users.location,
+        fullName: users.fullName,
+        email: users.email,
+        idNumber: users.idNumber,
+        idVerified: users.idVerified,
+        userType: users.userType,
+        metadata: users.metadata,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .where(eq(users.username, username));
+      
+      if (!result.length) return undefined;
+      
+      // Process metadata if it exists
+      let metadata = {};
+      try {
+        if (result[0].metadata) {
+          metadata = JSON.parse(result[0].metadata);
+        }
+      } catch (e) {
+        console.error("Error parsing user metadata:", e);
+      }
+      
+      // Return the user with metadata fields
+      return {
+        ...result[0],
+        restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId) : undefined,
+        restaurantName: metadata.restaurantName || undefined
+      } as User;
+    } catch (error) {
+      console.error("Error in getUserByUsername:", error);
+      return undefined;
+    }
   }
   
   async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
-    return result[0];
+    try {
+      const result = await db.select({
+        id: users.id,
+        username: users.username,
+        phoneNumber: users.phoneNumber,
+        password: users.password,
+        location: users.location,
+        fullName: users.fullName,
+        email: users.email,
+        idNumber: users.idNumber,
+        idVerified: users.idVerified,
+        userType: users.userType,
+        metadata: users.metadata,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .where(eq(users.phoneNumber, phoneNumber));
+      
+      if (!result.length) return undefined;
+      
+      // Process metadata if it exists
+      let metadata = {};
+      try {
+        if (result[0].metadata) {
+          metadata = JSON.parse(result[0].metadata);
+        }
+      } catch (e) {
+        console.error("Error parsing user metadata:", e);
+      }
+      
+      // Return the user with metadata fields
+      return {
+        ...result[0],
+        restaurantId: metadata.restaurantId ? parseInt(metadata.restaurantId) : undefined,
+        restaurantName: metadata.restaurantName || undefined
+      } as User;
+    } catch (error) {
+      console.error("Error in getUserByPhoneNumber:", error);
+      return undefined;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
