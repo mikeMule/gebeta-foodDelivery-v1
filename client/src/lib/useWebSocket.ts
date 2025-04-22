@@ -47,17 +47,38 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
   // Connect to WebSocket
   const connect = useCallback(() => {
     try {
-      // Get the URL for WebSocket connection
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Use either explicitly defined URL or fallback to auto-detection
+      let wsUrl;
+      
+      if (import.meta.env.VITE_WEBSOCKET_URL) {
+        // Use explicitly defined WebSocket URL if available
+        wsUrl = import.meta.env.VITE_WEBSOCKET_URL;
+      } else {
+        // Otherwise, construct it from current URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        wsUrl = `${protocol}//${host}/ws`;
+      }
       
       console.log(`Attempting WebSocket connection to ${wsUrl}`);
       
+      // Create connection with a longer timeout
       const newSocket = new WebSocket(wsUrl);
+      
+      // Set a timeout to detect connection issues
+      const connectionTimeout = setTimeout(() => {
+        if (newSocket.readyState !== WebSocket.OPEN) {
+          console.log('WebSocket connection timeout, closing socket');
+          newSocket.close();
+        }
+      }, 10000); // 10 second timeout
       
       newSocket.onopen = () => {
         console.log('WebSocket connected successfully');
         setIsConnected(true);
+        
+        // Clear the connection timeout
+        clearTimeout(connectionTimeout);
         
         // Authenticate the connection
         if (userId || userType || restaurantId) {
@@ -125,9 +146,13 @@ export const useWebSocket = (options: WebSocketOptions = {}) => {
       setSocket(newSocket);
       
       return () => {
+        // Clear the connection timeout to prevent issues
+        clearTimeout(connectionTimeout);
+        
+        // Safely close the socket if it's still open or connecting
         if (newSocket && (newSocket.readyState === WebSocket.OPEN || 
             newSocket.readyState === WebSocket.CONNECTING)) {
-          console.log('Closing WebSocket connection');
+          console.log('Cleaning up WebSocket connection');
           newSocket.close();
         }
       };

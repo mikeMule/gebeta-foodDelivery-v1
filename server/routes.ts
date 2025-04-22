@@ -213,6 +213,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete food item" });
     }
   });
+  
+  // Update food item
+  app.patch("/api/food-items/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Verify the food item exists
+      const foodItem = await storage.getFoodItem(id);
+      if (!foodItem) {
+        return res.status(404).json({ message: "Food item not found" });
+      }
+      
+      // Log the incoming request body for debugging
+      console.log("Update food item request body:", JSON.stringify(req.body));
+      
+      // Make sure the data is properly formatted
+      const updateData = req.body;
+      
+      // Restaurant owner authorization check
+      if (req.user?.userType === "restaurant_owner" && req.user?.restaurantId !== foodItem.restaurantId) {
+        return res.status(403).json({ message: "You can only edit food items for your own restaurant" });
+      }
+      
+      // Update the food item
+      const updatedFoodItem = await storage.updateFoodItem(id, updateData);
+      
+      // Return the updated food item
+      res.json(updatedFoodItem);
+    } catch (error) {
+      console.error("Error updating food item:", error);
+      res.status(500).json({ 
+        message: "Failed to update food item", 
+        details: error.message || "Unknown error" 
+      });
+    }
+  });
 
   // Food item routes
   app.get("/api/restaurants/:id/food-items", async (req: Request, res: Response) => {
