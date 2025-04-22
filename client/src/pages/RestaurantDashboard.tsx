@@ -417,7 +417,7 @@ const RestaurantDashboard = () => {
       },
       {
         onSuccess: (data) => {
-          const partnerName = deliveryPartners.find(p => p.id === deliveryPartnerId)?.user?.fullName || "delivery partner";
+          const partnerName = deliveryPartners.find((p: any) => p.id === deliveryPartnerId)?.user?.fullName || "delivery partner";
           toast({
             title: "Delivery Assigned",
             description: `Order #${orderId} assigned to ${partnerName}.`,
@@ -628,7 +628,7 @@ const RestaurantDashboard = () => {
                               Order Items
                             </h4>
                             <ul className="text-sm text-[#8B572A] space-y-1">
-                              {order.orderItems.map((item, i) => (
+                              {order.orderItems.map((item: OrderItemType, i: number) => (
                                 <li key={i} className="flex justify-between">
                                   <span>{item.quantity}x {item.name}</span>
                                   <span>{item.price.toLocaleString()} ETB</span>
@@ -691,7 +691,7 @@ const RestaurantDashboard = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {menuItems.map((item, index) => (
+              {menuItems.map((item: FoodItemType, index: number) => (
                 <motion.div
                   key={item.id}
                   variants={fadeIn}
@@ -740,7 +740,7 @@ const RestaurantDashboard = () => {
             <h2 className="text-xl font-bold text-[#4F2D1F]">Delivery Partners</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {MOCK_DELIVERY_PARTNERS.map((partner, index) => (
+              {MOCK_DELIVERY_PARTNERS.map((partner: DeliveryPartnerType, index: number) => (
                 <motion.div
                   key={partner.id}
                   variants={fadeIn}
