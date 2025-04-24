@@ -1,0 +1,22 @@
+{
+  "appId": "com.gebeta.fooddelivery",
+  "appName": "Gebeta Food Delivery",
+  "webDir": "dist/public",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "gebeta-release-key.keystore",
+      "keystoreAlias": "gebeta",
+      "keystorePassword": "gebeta123",
+      "keystoreAliasPassword": "gebeta123"
+    }
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gebeta Food Delivery</string>
+    <string name="title_activity_main">Gebeta Food Delivery</string>
+    <string name="package_name">com.gebeta.fooddelivery</string>
+    <string name="custom_url_scheme">com.gebeta.fooddelivery</string>
+</resources>
