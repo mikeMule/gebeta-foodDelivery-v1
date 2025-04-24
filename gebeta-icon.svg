@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="512"
+   height="512"
+   viewBox="0 0 512 512"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <rect
+     style="fill:#fff9f1;fill-opacity:1;stroke:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+     width="512"
+     height="512"
+     x="0"
+     y="0"
+     rx="64"
+     ry="64" />
+  <g transform="translate(0,0)">
+    <!-- Plate Circle -->
+    <circle
+       style="fill:#e5a764;fill-opacity:1;stroke:#8b572a;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       cx="256"
+       cy="256"
+       r="180" />
+    
+    <!-- Food on plate -->
+    <ellipse
+       style="fill:#f9f5f0;fill-opacity:1;stroke:#8b572a;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       cx="256"
+       cy="230"
+       rx="150"
+       ry="150" />
+       
+    <!-- Injera (Ethiopian bread) texture -->
+    <path
+       style="fill:none;stroke:#4f2d1f;stroke-width:3;stroke-linecap:round;stroke-dasharray:2, 8;stroke-opacity:0.5"
+       d="M 156,200 C 170,210 200,220 250,218 C 300,216 330,200 356,178" />
+    <path
+       style="fill:none;stroke:#4f2d1f;stroke-width:3;stroke-linecap:round;stroke-dasharray:2, 8;stroke-opacity:0.5"
+       d="M 170,240 C 190,250 240,250 270,242 C 300,234 330,220 360,220" />
+    <path
+       style="fill:none;stroke:#4f2d1f;stroke-width:3;stroke-linecap:round;stroke-dasharray:2, 8;stroke-opacity:0.5"
+       d="M 176,270 C 200,280 230,280 260,275 C 290,270 320,260 345,240" />
+       
+    <!-- Food items -->
+    <circle
+       style="fill:#e57164;fill-opacity:0.8;stroke:#8b572a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       cx="200"
+       cy="200"
+       r="24" />
+    <circle
+       style="fill:#4a8c43;fill-opacity:0.8;stroke:#8b572a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       cx="270"
+       cy="180"
+       r="20" />
+    <circle
+       style="fill:#ebc05c;fill-opacity:0.8;stroke:#8b572a;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       cx="320"
+       cy="210"
+       r="22" />
+
+    <!-- Fork and knife -->
+    <path
+       style="fill:none;stroke:#4f2d1f;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       d="M 320,350 L 370,300" />
+    <path
+       style="fill:none;stroke:#4f2d1f;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+       d="M 190,350 L 140,300" />
+        
+    <!-- Gebeta text -->
+    <text
+       style="font-style:normal;font-weight:bold;font-size:56px;font-family:Arial;fill:#4f2d1f;fill-opacity:1;stroke:none"
+       x="256"
+       y="420"
+       text-anchor="middle">GEBETA</text>
+  </g>
+</svg>

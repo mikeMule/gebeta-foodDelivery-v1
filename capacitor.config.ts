@@ -3,9 +3,10 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.gebeta.fooddelivery',
   appName: 'Gebeta Food Delivery',
-  webDir: 'dist',
+  webDir: 'dist/public',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    cleartext: true
   },
   android: {
     buildOptions: {
@@ -13,6 +14,12 @@ const config: CapacitorConfig = {
       keystoreAlias: 'gebeta',
       keystorePassword: 'gebeta123',
       keystoreAliasPassword: 'gebeta123'
+    }
+  },
+  // This allows the app to access your backend API when running on a device
+  plugins: {
+    CapacitorHttp: {
+      enabled: true
     }
   }
 };
